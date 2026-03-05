@@ -142,10 +142,10 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 ### Фаза 11 — SEO, кеш, доступ ✅
 - [x] `references/seo-cache-access.md` — сброс кеша (файловый/managed/HTML), noindex, sitemap, robots.txt, AuthForm
 
-### Фаза 12 — Критичные модули (приоритет: каждый проект)
-- [ ] `references/sale.md` — Sale: корзина, заказы, оплата, доставка, скидки, купоны, события
-- [ ] `references/mail-notifications.md` — CEventType, CEventMessage, CEvent::Send, SMS-провайдеры
-- [ ] `references/catalog.md` — Цены, прайс-листы, SKU/offers, склады, остатки, скидки каталога
+### Фаза 12 — Критичные модули (приоритет: каждый проект) ✅
+- [x] `references/sale.md` — Sale: корзина, заказы, оплата, доставка, скидки, купоны, события
+- [x] `references/mail-notifications.md` — CEventType, CEventMessage, CEvent::Send, SMS-провайдеры
+- [x] `references/catalog.md` — Цены, прайс-листы, SKU/offers, склады, остатки, скидки каталога
 
 ### Фаза 13 — Частые задачи (приоритет: большинство проектов)
 - [ ] `references/templates.md` — Структура шаблона сайта, Asset D7, $APPLICATION в header/footer, composite + шаблоны

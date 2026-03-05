@@ -181,6 +181,9 @@ class Order extends Controller
 | Создание инфоблоков/типов/свойств, группы, пользователи, права, миграции, SQL схема | [references/entities-migrations.md](references/entities-migrations.md) |
 | SEF URL / ЧПУ, urlrewrite.php, UrlRewriter D7, SEF_MODE, SEF_RULE, CComponentEngine, сортировка/фильтрация инфоблока | [references/sef-urls.md](references/sef-urls.md) |
 | Сброс кеша (файловый, managed, HTML/composite), noindex/robots, canonical, sitemap (SitemapTable, Job), robots.txt (RobotsFile), защита страниц авторизацией (.access.php, AuthForm, IsAuthorized) | [references/seo-cache-access.md](references/seo-cache-access.md) |
+| Sale: корзина (Basket), заказы (Order), оплата (Payment), доставка (Shipment), скидки, купоны, события Sale | [references/sale.md](references/sale.md) |
+| Почтовые события: CEventType, CEventMessage, Mail\Event::send/sendImmediate, SMS, вложения, OnBeforeEventSend | [references/mail-notifications.md](references/mail-notifications.md) |
+| Торговый каталог: цены (PriceTable), прайс-листы, торговые предложения (SKU/offers), склады, остатки, скидки каталога | [references/catalog.md](references/catalog.md) |
 
 ---
 
