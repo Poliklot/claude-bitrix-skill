@@ -28,14 +28,18 @@ bitrix-agent-skill/
 - [x] Описать роль, тон, стиль ответов
 - [x] Добавить первичные инструкции по D7 ORM
 
-### Фаза 2 — Ядро D7
-Изучить и задокументировать в скилле:
-- [ ] `Bitrix\Main\Application` — точка входа, сервис-локатор
-- [ ] `Bitrix\Main\ORM` — Entity, Query, DataManager, Relations
-- [ ] `Bitrix\Main\DB` — Connection, SqlHelper, транзакции
-- [ ] `Bitrix\Main\DI\ServiceLocator` — регистрация сервисов
-- [ ] `Bitrix\Main\Config\Option` — настройки модулей
-- [ ] `Bitrix\Main\Localization` — локализация и Loc::getMessage
+### Фаза 2 — Ядро D7 ✅
+- [x] ORM: операторы фильтра (полная таблица + логика AND/OR)
+- [x] ORM: агрегация (COUNT, SUM, AVG, MIN, MAX + GROUP BY)
+- [x] ORM: runtime-поля в запросе
+- [x] ORM: события сущностей (onBeforeAdd/Update/Delete + onAfter*)
+- [x] Result / Error — паттерн для сервисов
+- [x] EventManager — подписка, D7-события, регистрация в модуле
+- [x] Engine\Controller — Actions, prefilters, CSRF, AJAX-ответы
+- [x] Routing — RoutingConfigurator, группы, параметры
+- [x] Type\DateTime и Type\Date — создание, арифметика, таймзоны
+- [x] HttpClient — GET/POST, заголовки, ошибки
+- [x] Иерархия исключений ядра
 
 ### Фаза 3 — Модули и компоненты
 - [ ] Структура модуля: `include.php`, `install/`, event handlers
