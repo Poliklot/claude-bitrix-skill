@@ -129,6 +129,63 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 
 ---
 
+## Фаза 10–15 — Расширение покрытия (roadmap)
+
+> Задачи из анализа реальных вакансий, корпоративных и блог-проектов, интернет-магазинов.
+
+### Фаза 10 — SEF / ЧПУ ✅
+- [x] `references/sef-urls.md` — urlrewrite.php, UrlRewriter D7, SEF_MODE, SEF_RULE
+- [x] CComponentEngine: guessComponentPath, makePathFromTemplate
+- [x] Пример: travels/?type=russia → travels/russia/ с 301-редиректом
+- [x] Безопасная сборка фильтра из GET (белый список)
+
+### Фаза 11 — SEO, кеш, доступ ✅
+- [x] `references/seo-cache-access.md` — сброс кеша (файловый/managed/HTML), noindex, sitemap, robots.txt, AuthForm
+
+### Фаза 12 — Критичные модули (приоритет: каждый проект)
+- [ ] `references/sale.md` — Sale: корзина, заказы, оплата, доставка, скидки, купоны, события
+- [ ] `references/mail-notifications.md` — CEventType, CEventMessage, CEvent::Send, SMS-провайдеры
+- [ ] `references/catalog.md` — Цены, прайс-листы, SKU/offers, склады, остатки, скидки каталога
+
+### Фаза 13 — Частые задачи (приоритет: большинство проектов)
+- [ ] `references/templates.md` — Структура шаблона сайта, Asset D7, $APPLICATION в header/footer, composite + шаблоны
+- [ ] `references/users.md` — CUser::Add/Login, UserTable D7, UF пользователей, восстановление пароля, CurrentUser
+- [ ] `references/webforms.md` — Веб-формы: CForm, CFormResult, AJAX-версия, форма на инфоблоке
+- [ ] Дополнить `references/cache-infra.md` — CFile::SaveFile/ResizeImage, загрузка $_FILES в D7, CFile::MakeFileArray
+
+### Фаза 14 — Специализированные интеграции
+- [ ] `references/crm.md` — CRM лиды/сделки/контакты/компании: PHP API + REST, UF CRM, события, CCrmDeal::GetList
+- [ ] `references/1c-exchange.md` — CommerceML: этапы, события OnIBlockImport*, отладка, права, ручной запуск
+- [ ] `references/search.md` — CSearch::Search/Index/DeleteIndex, событие OnSearch, переиндексация, морфология
+- [ ] `references/import-export.md` — CSV/Excel импорт инфоблока, многошаговый импорт, CFile::MakeFileArray из URL, экспорт потоком
+
+### Фаза 15 — Корпоративные сайты и блоги
+- [ ] `references/blog-socialnet.md` — CBlogPost, комментарии (forum D7), лайки/рейтинги, рабочие группы, живая лента, подписки
+- [ ] `references/push-pull.md` — Bitrix Pull&Push: отправка события из PHP, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка
+- [ ] `references/workflow.md` — Бизнес-процессы: CBPRuntime::StartWorkflow, кастомное действие IBPActivity, кастомное условие
+
+### Фаза 16 — Расширения существующих файлов
+- [ ] Дополнить `references/modules-loader.md` — Мультисайтовость: SITE_ID/LANGUAGE_ID, SiteTable, CSite, Loc с языком
+- [ ] Дополнить `references/rest.md` — Placement API Bitrix24, iframe-приложения, OnAppInstall, локальное vs маркетплейс приложение
+- [ ] Дополнить `references/security.md` — Composite cache + личные данные (bx-dynamic), CSP-заголовки
+
+---
+
+## Итого план расширения
+
+| Фаза | Новых файлов | Правок существующих |
+|------|-------------|-------------------|
+| 12 | 3 | — |
+| 13 | 3 | 1 |
+| 14 | 4 | — |
+| 15 | 3 | — |
+| 16 | — | 3 |
+| **Итого** | **13** | **4** |
+
+Итоговый размер: **~26 reference-файлов** (сейчас 13)
+
+---
+
 ## Принципы написания скилла
 
 1. **Конкретность** — примеры кода лучше абстрактных описаний

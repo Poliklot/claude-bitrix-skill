@@ -179,6 +179,8 @@ class Order extends Controller
 | REST-методы, OnRestServiceBuildDescription, события REST, Webhook, OAuth, HttpClient | [references/rest.md](references/rest.md) |
 | Admin-страницы, CAdminList, CAdminForm, CAdminTabControl, фильтры, меню, права, кастомные UF-типы | [references/admin-ui.md](references/admin-ui.md) |
 | Создание инфоблоков/типов/свойств, группы, пользователи, права, миграции, SQL схема | [references/entities-migrations.md](references/entities-migrations.md) |
+| SEF URL / ЧПУ, urlrewrite.php, UrlRewriter D7, SEF_MODE, SEF_RULE, CComponentEngine, сортировка/фильтрация инфоблока | [references/sef-urls.md](references/sef-urls.md) |
+| Сброс кеша (файловый, managed, HTML/composite), noindex/robots, canonical, sitemap (SitemapTable, Job), robots.txt (RobotsFile), защита страниц авторизацией (.access.php, AuthForm, IsAuthorized) | [references/seo-cache-access.md](references/seo-cache-access.md) |
 
 ---
 
