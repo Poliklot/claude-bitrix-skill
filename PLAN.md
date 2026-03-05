@@ -41,18 +41,24 @@ bitrix-agent-skill/
 - [x] HttpClient — GET/POST, заголовки, ошибки
 - [x] Иерархия исключений ядра
 
-### Фаза 3 — Модули и компоненты
-- [ ] Структура модуля: `include.php`, `install/`, event handlers
-- [ ] Компоненты: `.parameters.php`, `.description.php`, `class.php`, шаблоны
-- [ ] Битрикс-MVC через роутер `Bitrix\Main\Routing`
-- [ ] CBitrixComponent vs D7-компоненты
+### Фаза 3 — Модули и компоненты ✅
+- [x] Структура модуля: `include.php`, `install/index.php`, `install/version.php`, `.settings.php`
+- [x] Инсталлятор: `CModule`, `ModuleManager::registerModule()`, `InstallDB/UnInstallDB`
+- [x] `Loader`: PSR-4 автозагрузка, `local/` vs `bitrix/`, `requireModule()`, `registerNamespace()`
+- [x] Компоненты: `.parameters.php`, `.description.php`, `class.php`, шаблоны
+- [x] `CBitrixComponent`: жизненный цикл, `onPrepareComponentParams`, `executeComponent`
+- [x] Кеширование: `startResultCache/endResultCache/abortResultCache`, тегированный кеш, `arResultCacheKeys`
+- [x] Шаблоны: доступные переменные, `setFrameMode`, `AddEditAction`, `GetEditAreaId`
+- [x] `CComponentEngine`: URL-роутинг `#VAR#`-шаблоны, `addGreedyPart`, `guessComponentPath`
+- [x] `~KEY` в arParams (raw vs экранированные значения)
 
-### Фаза 4 — Инфраструктурные паттерны
-- [ ] Кеширование: `Bitrix\Main\Data\Cache`, тегированный кеш
-- [ ] Агенты: `CAgent`, `Bitrix\Main\Agent`
-- [ ] Очереди и события: `Bitrix\Main\EventManager`, обработчики
-- [ ] Файловая система: `Bitrix\Main\IO`
-- [ ] HTTP: `Bitrix\Main\Web\HttpClient`, `Request`, `Response`
+### Фаза 4 — Инфраструктурные паттерны ✅
+- [x] Кеширование: `Bitrix\Main\Data\Cache` — два режима (data/output), полный API, gotchas
+- [x] Тегированный кеш: `TaggedCache` — startTagCache/registerTag/clearByTag, b_cache_tag
+- [x] Агенты: `CAgent` (D7-обёртки нет!) — AddAgent, паттерн функции, IS_PERIOD, gotchas
+- [x] Файловая система: `Bitrix\Main\IO` — File, Directory, Path, исключения
+- [x] HTTP: `HttpRequest` — getQuery/getPost/getCookie/isAjax/isJson/decodeJson
+- [x] HTTP: `HttpResponse` — addHeader/setStatus/addCookie/flush/redirectTo
 
 ### Фаза 5 — Инфоблоки
 - [ ] Legacy API: `CIBlock`, `CIBlockElement`, `CIBlockSection`
