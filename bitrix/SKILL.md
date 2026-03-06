@@ -175,6 +175,7 @@ class Order extends Controller
 | Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path | [references/cache-infra.md](references/cache-infra.md) |
 | Type\DateTime, Type\Date, HttpClient, HttpRequest, HttpResponse | [references/http.md](references/http.md) |
 | Инфоблоки (legacy + D7 ORM), свойства, HL-блоки, события инфоблоков | [references/iblocks.md](references/iblocks.md) |
+| Связь ИБ ↔ HL-блок: directory (UF_XML_ID), hlblock UF (int ID), _REF в ORM, runtime Reference, AbstractOrmRepository с HL | [references/iblock-hl-relations.md](references/iblock-hl-relations.md) |
 | XSS, SQL-инъекции, CSRF, права доступа, CurrentUser, ActionFilter | [references/security.md](references/security.md) |
 | REST-методы, OnRestServiceBuildDescription, события REST, Webhook, OAuth, HttpClient | [references/rest.md](references/rest.md) |
 | Admin-страницы, CAdminList, CAdminForm, CAdminTabControl, фильтры, меню, права, кастомные UF-типы | [references/admin-ui.md](references/admin-ui.md) |
