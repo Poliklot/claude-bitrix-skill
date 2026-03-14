@@ -1,10 +1,10 @@
 ---
 name: bitrix
-description: Provides expertise in Bitrix CMS and Bitrix24 development (D7 and legacy APIs). Use when working with Bitrix modules, components, iblocks, HL blocks, ORM, caching, agents, events, controllers, REST, or any Bitrix-specific code. Covers Bitrix CMS 23+ and Bitrix24 2024+.
+description: Provides expertise in 1C-Bitrix CMS development (D7 and legacy APIs). Use when working with Bitrix modules, components, iblocks, HL blocks, ORM, caching, agents, events, controllers, REST, sale/catalog, or any Bitrix-specific code. Covers 1C-Bitrix CMS 23+ core. Does NOT cover Bitrix24-specific modules (CRM, Tasks, IM, etc.).
 metadata:
   author: poliklot
   version: "1.0"
-compatibility: Designed for Claude Code on Bitrix CMS / Bitrix24 projects
+compatibility: Designed for Claude Code on 1C-Bitrix CMS projects
 ---
 
 # Bitrix Expert Skill
@@ -189,6 +189,12 @@ class Order extends Controller
 | Поиск: CSearch::Index/DeleteIndex/ReIndexAll, BeforeIndex, OnSearch, регистрация модуля в ReIndexAll | [references/search.md](references/search.md) |
 | Импорт CSV/URL, многошаговый импорт, CFile::SaveFile/MakeFileArray/GetFileArray/ResizeImageGet, экспорт потоком | [references/import-export.md](references/import-export.md) |
 | Кастомные UF-типы (BaseType, onBeforeSave, BASE_TYPE_FILE, getDbColumnType), ACF Repeater/Group/Flexible Content через HL, глубокая вложенность HL→HL, RENDER_COMPONENT | [references/custom-uf-types.md](references/custom-uf-types.md) |
+| Интернет-магазин (модуль sale): Order, Basket, BasketItem, Payment, Shipment, PropertyCollection, скидки, купоны, события sale | [references/sale.md](references/sale.md) |
+| Торговый каталог (модуль catalog): PriceTable, ProductTable, StoreProductTable, SKU/торговые предложения, типы цен, скидки каталога | [references/catalog.md](references/catalog.md) |
+| Блог и соцсеть: CBlogPost, CBlogComment, CBlogTag, CSocNetGroup, рабочие группы, живая лента (CSocNetLog), лайки (CLike), рейтинги | [references/blog-socialnet.md](references/blog-socialnet.md) |
+| Push&Pull: Bitrix\Pull\Event::add, CPullChannel, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка, онлайн-статус | [references/push-pull.md](references/push-pull.md) |
+| Бизнес-процессы: CBPRuntime::StartWorkflow, типы документов, кастомный IBPActivity, IBPCondition, CBPStateService, TerminateWorkflow | [references/workflow.md](references/workflow.md) |
+| Рассылки (subscribe): CSender, CSubscribe, CSubscription, CPosting, CSending, CPostingTemplate, Subscribe/UnSubscribe | [references/subscribe.md](references/subscribe.md) |
 
 ---
 

@@ -162,15 +162,21 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 ### Фаза 14.5 — Кастомные UF-типы и ACF-паттерны ✅
 - [x] `references/custom-uf-types.md` — BaseType, onBeforeSave, BASE_TYPE_FILE, getDbColumnType, ACF Repeater/Group/Flexible Content через HL, глубокая вложенность HL→HL, файл в UF HL, RENDER_COMPONENT
 
-### Фаза 15 — Корпоративные сайты и блоги
-- [ ] `references/blog-socialnet.md` — CBlogPost, комментарии (forum D7), лайки/рейтинги, рабочие группы, живая лента, подписки
-- [ ] `references/push-pull.md` — Bitrix Pull&Push: отправка события из PHP, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка
-- [ ] `references/workflow.md` — Бизнес-процессы: CBPRuntime::StartWorkflow, кастомное действие IBPActivity, кастомное условие
+### Фаза 15 — Корпоративные сайты и блоги ✅
+- [x] `references/blog-socialnet.md` — CBlogPost, CBlogComment, CLike, CSocNetGroup, CSocNetLog, живая лента, рейтинги
+- [x] `references/push-pull.md` — Bitrix Pull&Push: Event::add, CPullChannel, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка
+- [x] `references/workflow.md` — Бизнес-процессы: CBPRuntime::StartWorkflow, кастомный IBPActivity, IBPCondition, TerminateWorkflow
+- [x] `references/subscribe.md` — Рассылки: CSender, CSubscribe, CSubscription, CPosting, CSending (новый файл, не был в плане)
 
-### Фаза 16 — Расширения существующих файлов
-- [ ] Дополнить `references/modules-loader.md` — Мультисайтовость: SITE_ID/LANGUAGE_ID, SiteTable, CSite, Loc с языком
-- [ ] Дополнить `references/rest.md` — Placement API Bitrix24, iframe-приложения, OnAppInstall, локальное vs маркетплейс приложение
-- [ ] Дополнить `references/security.md` — Composite cache + личные данные (bx-dynamic), CSP-заголовки
+### Фаза 16 — Расширения существующих файлов ✅ (частично)
+- [x] Дополнить `references/modules-loader.md` — Мультисайтовость: SITE_ID/LANGUAGE_ID, SiteTable, CSite, Loc с языком, COption per-site
+- [ ] ~~Дополнить `references/rest.md` — Placement API Bitrix24~~ — ОТМЕНЕНО: скилл покрывает только 1C-Bitrix CMS, не Bitrix24-specific
+- [x] Дополнить `references/security.md` — Composite cache + личные данные (bx-dynamic), CSP-заголовки
+
+### Фаза 0 — Исправление описания ✅
+- [x] Убрать "Bitrix24 2024+" из description SKILL.md — скилл покрывает только 1C-Bitrix CMS ядро
+- [x] Обновить README.md — убрать упоминание Bitrix24, уточнить покрытие
+- [x] Подключить `sale.md` и `catalog.md` в навигацию SKILL.md (файлы уже существовали, но не были в навигации)
 
 ---
 

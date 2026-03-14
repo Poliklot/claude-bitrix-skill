@@ -1,6 +1,6 @@
 # Навык Bitrix для Claude Code
 
-Навык Claude Code для разработки на Bitrix CMS и Bitrix24. Охватывает D7 и legacy API: ORM, компоненты, инфоблоки, HL-блоки, кеширование, события, REST и многое другое.
+Навык Claude Code для разработки на 1C-Bitrix CMS. Охватывает D7 и legacy API: ORM, компоненты, инфоблоки, HL-блоки, кеширование, события, REST, интернет-магазин и многое другое.
 
 ## Установка
 
@@ -36,6 +36,12 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 | `iblocks.md` | Инфоблоки legacy + D7 ORM, свойства, HL-блоки, события инфоблоков |
 | `iblock-hl-relations.md` | Связи инфоблоков и HL: directory (UF_XML_ID), HL-поля в UF, `_REF` в ORM, AbstractOrmRepository |
 | `custom-uf-types.md` | Кастомные UF-типы (BaseType, onBeforeSave, загрузка файлов), ACF-подходы через HL (Repeater, Group, Flexible Content, глубокая вложенность) |
+| `sale.md` | Интернет-магазин: Order, Basket, BasketItem, Payment, Shipment, скидки, купоны, события sale |
+| `catalog.md` | Торговый каталог: PriceTable, ProductTable, StoreProductTable, SKU/ТП, типы цен, скидки каталога |
+| `blog-socialnet.md` | Блог и соцсеть: CBlogPost, CBlogComment, CBlogTag, CSocNetGroup, живая лента, лайки, рейтинги |
+| `push-pull.md` | Push&Pull: Event::add, CPullChannel, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка |
+| `workflow.md` | Бизнес-процессы: CBPRuntime::StartWorkflow, кастомный IBPActivity, IBPCondition, TerminateWorkflow |
+| `subscribe.md` | Рассылки: CSender, CSubscribe, CSubscription, CPosting, CSending, Subscribe/UnSubscribe |
 | `security.md` | XSS, SQL injection, CSRF, контроль доступа, CurrentUser, ActionFilter |
 | `rest.md` | REST-методы, OnRestServiceBuildDescription, REST-события, Webhook, OAuth |
 | `admin-ui.md` | Админ-страницы, CAdminList, CAdminForm, CAdminTabControl, кастомные UF-типы в админке |
@@ -52,7 +58,7 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 ## Требования
 
 - Claude Code
-- Bitrix CMS 23+ или Bitrix24 2024+
+- 1C-Bitrix CMS 23+
 
 ## Лицензия
 

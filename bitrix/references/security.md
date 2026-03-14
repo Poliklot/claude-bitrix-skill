@@ -352,3 +352,207 @@ $hashedPassword = CUser::HashPassword($plainPassword);
 - **`CurrentUser::get()` никогда не возвращает null** — возвращает объект у которого `getId()` вернёт `null`. Всегда проверяй `$user->getId()` а не наличие объекта.
 - **`$USER->IsAdmin()`** возвращает `true` только если пользователь в группе с ID=1 (администраторы) — обычные `bitrix_admin` операции этого не дают.
 - **Не полагайся на `$_SESSION`** напрямую для хранения прав — используй только механизмы Bitrix (`$USER`, `$APPLICATION->GetGroupRight`).
+
+---
+
+## Composite Cache + личные данные (bx-dynamic)
+
+### Архитектура Composite
+
+Bitrix Composite — механизм кеширования полной страницы с выделением «динамических» (персональных) блоков:
+- **Статическая часть** кешируется целиком на диск/nginx как HTML.
+- **Динамические блоки** (`bx-dynamic`) вырезаются и подгружаются отдельным AJAX-запросом.
+- Результат: авторизованные пользователи получают кешированную основу страницы, а персональные данные (корзина, имя, лайки) подгружаются асинхронно.
+
+### CBitrixComponent::setFrameMode(true)
+
+```php
+// В component.php компонента-«оболочки» (статический блок)
+// Включает composite-режим: компонент участвует в composite-кешировании
+if ($this->startResultCache()) {
+    // Весь код внутри кешируется
+    $this->arResult['ITEMS'] = $this->getItems();
+    $this->includeComponentTemplate();
+    $this->endResultCache();
+}
+
+// Включить frame-режим (composite) для компонента
+$this->setFrameMode(true);
+// После этого компонент получит <div id="bx_..."> обёртку
+// которую composite-движок умеет вырезать и подставлять
+```
+
+### Правильный паттерн: оболочка + динамический блок
+
+```php
+// template.php статического компонента (каталог, список новостей)
+// Весь шаблон кешируется. Внутри — вызов персонального компонента:
+
+/** @var CBitrixComponentTemplate $this */
+/** @var array $arResult */
+
+// Подключить "личный" компонент как динамический блок
+// APPLICATION->IncludeComponent с setFrameMode обеспечивает bx-dynamic
+$APPLICATION->IncludeComponent(
+    'vendor:user.cart.mini',   // персональный компонент (корзина, избранное, etc.)
+    '',
+    [
+        'CACHE_TYPE' => 'N',   // НИКОГДА не кешировать персональный компонент
+    ],
+    $component,                // родительский компонент
+    ['HIDE_ICONS' => 'Y']      // параметры для dynamic-блока
+);
+```
+
+```php
+// component.php персонального компонента (bx-dynamic блок)
+// Этот компонент НЕ должен использовать кеш — он всегда персональный
+
+global $USER;
+
+// Включить режим dynamic-frame (компонент будет подгружаться через AJAX)
+$this->setFrameMode(true);
+
+// Получить персональные данные
+$this->arResult['USER_ID']    = is_object($USER) ? (int)$USER->GetID() : 0;
+$this->arResult['CART_COUNT'] = $this->getCartCount($this->arResult['USER_ID']);
+$this->arResult['USER_NAME']  = is_object($USER) ? $USER->GetFirstName() : '';
+
+// Без кеша — данные всегда актуальные
+$this->includeComponentTemplate();
+```
+
+### CCompositeHelper::Init()
+
+```php
+// CCompositeHelper::Init() вызывается ядром автоматически при загрузке страницы
+// Что он делает:
+// 1. Определяет, включён ли composite для текущего сайта (настройки в /bitrix/admin/)
+// 2. Проверяет, подходит ли страница для composite (не POST, не ajax, нет ?clear_cache=Y)
+// 3. Если страница в кеше — отдаёт HTML из кеша немедленно, без выполнения PHP
+// 4. Если не в кеше — запускает обычный цикл выполнения и сохраняет результат
+
+// Явная инициализация (редко нужна — обычно делается ядром автоматически):
+\CCompositeHelper::Init([
+    'CACHE_TIME' => 3600,         // TTL кеша в секундах
+    'CACHE_TYPE' => 'A',          // A = авто, N = не кешировать, Y = всегда
+]);
+
+// Проверить, работает ли composite сейчас
+$isComposite = \CCompositeHelper::IsEnabled(); // bool
+```
+
+### setFrameMode + SetCacheProperty
+
+```php
+// setFrameMode(true) без SetCacheProperty не даёт эффекта в шаблоне!
+// Нужно явно объявить какие свойства arResult участвуют в кеше
+
+// В component.php:
+$this->setFrameMode(true);
+
+// Кешировать только эти ключи arResult (остальные будут переданы в dynamic-режим)
+$frame = $this->createFrame()->begin(); // создать frame-объект
+
+$this->arResult['CACHED_DATA'] = $this->getCachedData();   // кешируется
+$this->arResult['USER_SPECIFIC'] = null;                    // не кешируется — заполнится dynamic
+
+$frame->end(); // закрыть frame — всё что внутри begin/end кешируется
+$this->includeComponentTemplate();
+```
+
+### JS: BX.message / BX.userOptions для персональных данных
+
+```javascript
+// Передать персональные данные в JS без пробива кеша (в шаблоне компонента)
+// BX.message() — глобальный JS-словарь, заполняется через PHP
+
+// В PHP шаблоне dynamic-компонента (не кешируется):
+?>
+<script>
+BX.message({
+    'USER_ID':    <?= (int)$arResult['USER_ID'] ?>,
+    'USER_NAME':  '<?= CUtil::JSEscape($arResult['USER_NAME']) ?>',
+    'CART_COUNT': <?= (int)$arResult['CART_COUNT'] ?>,
+});
+</script>
+<?php
+
+// В JS-коде:
+// Получить данные
+const userId    = BX.message('USER_ID');
+const cartCount = BX.message('CART_COUNT');
+
+// BX.userOptions — хранение пользовательских настроек (persistentные)
+// Сохранить настройку
+BX.userOptions.save('mymodule', 'sidebar_open', 'Y');
+
+// Получить настройку
+const sidebarState = BX.userOptions.get('mymodule', 'sidebar_open', 'N'); // 'N' — default
+```
+
+### CSP-заголовки: добавление через Response
+
+```php
+use Bitrix\Main\Application;
+
+$response = Application::getInstance()->getResponse();
+
+// Добавить заголовок Content-Security-Policy
+$response->addHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " .
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.bitrix24.com; " .
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+    "img-src 'self' data: https:; " .
+    "font-src 'self' https://fonts.gstatic.com; " .
+    "connect-src 'self' wss: https:; " .  // wss: для WebSocket (Push&Pull)
+    "frame-ancestors 'self'; " .
+    "base-uri 'self'"
+);
+
+// Добавить X-Frame-Options (защита от clickjacking)
+$response->addHeader('X-Frame-Options', 'SAMEORIGIN');
+
+// Добавить X-Content-Type-Options (защита от MIME-sniffing)
+$response->addHeader('X-Content-Type-Options', 'nosniff');
+
+// Referrer-Policy
+$response->addHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+```
+
+### Типичная CSP-политика для Bitrix-сайта
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  script-src  'self' 'unsafe-inline' 'unsafe-eval'
+              https://api-maps.yandex.ru
+              https://mc.yandex.ru
+              https://www.googletagmanager.com
+              https://www.google-analytics.com;
+  style-src   'self' 'unsafe-inline'
+              https://fonts.googleapis.com;
+  img-src     'self' data: blob:
+              https://mc.yandex.ru
+              https://www.google-analytics.com;
+  font-src    'self' data:
+              https://fonts.gstatic.com;
+  connect-src 'self' wss: https:;
+  frame-src   'self' https://www.youtube.com https://vk.com;
+  frame-ancestors 'self';
+  base-uri    'self';
+  form-action 'self';
+```
+
+> `'unsafe-inline'` и `'unsafe-eval'` обязательны для Bitrix — ядро и большинство компонентов используют inline-скрипты. Убрать их можно только при полном отказе от стандартных компонентов.
+
+### Gotchas Composite + CSP
+
+- **Composite не работает для авторизованных пользователей без dynamic-блоков**: если на странице есть персональные данные прямо в кешируемом шаблоне (имя пользователя, корзина) — composite либо отключится автоматически, либо покажет чужие данные. Выноси всё персональное в отдельный компонент с `setFrameMode(true)` и `CACHE_TYPE = 'N'`.
+- **`setFrameMode(true)` без `$this->createFrame()->begin()/end()`** не разделяет кешируемую и динамическую части — весь компонент уйдёт в dynamic (то есть никакого кеша не будет). Оборачивай кешируемую часть в `begin/end`.
+- **`$APPLICATION->IncludeComponent()` внутри кешируемого шаблона** — dynamic-подкомпонент корректно выделяется только если вызов находится внутри уже запущенного composite-frame. Вне frame вызов выполнится синхронно без dynamic-механики.
+- **Не добавляй заголовки после вывода**: `$response->addHeader()` нужно вызывать до любого вывода (`echo`, `?>`). После начала вывода в composite-режиме заголовки могут не примениться.
+- **CSP `connect-src`** должен включать `wss:` (WebSocket) если используется Push&Pull — иначе браузер заблокирует WebSocket-соединение.
+- **`BX.message()`** сбрасывается при каждой загрузке страницы. Для persistentного хранения используй `BX.userOptions` (сохраняет на сервере в `b_user_option`) или `localStorage`.
+- **Composite и AJAX-компоненты**: компонент вызванный через `$APPLICATION->IncludeComponent()` внутри `bitrix:ajax.updater` не участвует в composite — это разные механизмы. Не смешивай их.
