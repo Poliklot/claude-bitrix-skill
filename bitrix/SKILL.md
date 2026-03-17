@@ -195,6 +195,15 @@ class Order extends Controller
 | Push&Pull: Bitrix\Pull\Event::add, CPullChannel, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка, онлайн-статус | [references/push-pull.md](references/push-pull.md) |
 | Бизнес-процессы: CBPRuntime::StartWorkflow, типы документов, кастомный IBPActivity, IBPCondition, CBPStateService, TerminateWorkflow | [references/workflow.md](references/workflow.md) |
 | Рассылки (subscribe): CSender, CSubscribe, CSubscription, CPosting, CSending, CPostingTemplate, Subscribe/UnSubscribe | [references/subscribe.md](references/subscribe.md) |
+| Bitrix\Main\Grid\Grid, Settings, Options, ComponentParams, processRequest, getOrmFilter, getOrmParams, setRawRows | [references/grid-admin-modern.md](references/grid-admin-modern.md) |
+| Stepper (итеративные обновления), bindClass, THRESHOLD_TIME, CLI команды (UpdateCommand, make/*, orm/annotate) | [references/update-stepper.md](references/update-stepper.md) |
+| ValidationService, PHP 8 Attributes (#[NotEmpty], #[Email], #[Length], #[Min], #[Max], #[InArray] и др.) | [references/validation.md](references/validation.md) |
+| Session (ArrayAccess, isActive, isAccessible, enableLazyStart, getId), KernelSession, CompositeSessionManager, Authentication\Policy | [references/session-auth.md](references/session-auth.md) |
+| DB\Connection, SqlHelper (quote, forSql, getCurrentDateTimeFunction), прямые запросы, транзакции, различия MySQL/PgSQL/Oracle/MSSQL | [references/database-layer.md](references/database-layer.md) |
+| Access\Permission\PermissionDictionary, Role\RoleDictionary, BaseAccessController, Rule, RBAC, AccessPermissionTable | [references/access-rbac.md](references/access-rbac.md) |
+| FileUploader\FieldFileUploaderController, UploaderController, Configuration, UploadedFilesRegistry, UploaderFileSigner | [references/file-upload-modern.md](references/file-upload-modern.md) |
+| Numerator, NumberGeneratorFactory, NumeratorTable, NumeratorSequenceTable, шаблоны нумерации документов | [references/numerator.md](references/numerator.md) |
+| UserConsent\Consent::addByContext, Agreement, DataProvider, Policy, OnUserConsentProviderList, GDPR-согласие | [references/userconsent.md](references/userconsent.md) |
 
 ---
 

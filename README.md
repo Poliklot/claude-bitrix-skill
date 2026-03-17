@@ -54,6 +54,15 @@ cp -r bitrix/ ~/.claude/skills/bitrix
 | `webforms.md` | CForm, CFormResult, AJAX-форма через Controller, валидация |
 | `search.md` | CSearch::Index/DeleteIndex/ReIndexAll, BeforeIndex, OnSearch, регистрация модуля |
 | `import-export.md` | Импорт CSV/URL, многошаговый импорт, CFile::SaveFile/MakeFileArray/ResizeImageGet, потоковый экспорт |
+| `grid-admin-modern.md` | Современный Grid UI: Grid, Settings, Options, ComponentParams, processRequest, getOrmFilter, bitrix:main.ui.grid |
+| `update-stepper.md` | Stepper (итеративные обновления), bindClass, CLI команды (UpdateCommand, make/*, orm/annotate) |
+| `validation.md` | ValidationService, PHP 8 Attributes (#[NotEmpty], #[Email], #[Length], #[Min], #[Max] и др.) |
+| `session-auth.md` | Session (ArrayAccess, enableLazyStart, isActive), KernelSession, CompositeSessionManager, Authentication\Policy |
+| `database-layer.md` | DB\Connection, SqlHelper (quote, forSql, getCurrentDateTimeFunction), различия MySQL/PgSQL/Oracle/MSSQL |
+| `access-rbac.md` | Access\Permission\PermissionDictionary, RoleDictionary, BaseAccessController, Rule, RBAC |
+| `file-upload-modern.md` | FileUploader\FieldFileUploaderController, UploaderController, Configuration, UploadedFilesRegistry |
+| `numerator.md` | Numerator, NumberGeneratorFactory, NumeratorTable, шаблоны нумерации документов |
+| `userconsent.md` | UserConsent\Consent::addByContext, Agreement, DataProvider, GDPR-согласие |
 
 ## Требования
 
