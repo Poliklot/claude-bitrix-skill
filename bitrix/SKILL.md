@@ -169,12 +169,12 @@ class Order extends Controller
 | Тема | Файл |
 |------|------|
 | DataManager, CRUD, Relations, фильтры, агрегация, runtime-поля, ORM Events, Result/Error, исключения | [references/orm.md](references/orm.md) |
-| EventManager, Engine\Controller, AJAX, Routing, CSRF | [references/events-routing.md](references/events-routing.md) |
-| Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc | [references/modules-loader.md](references/modules-loader.md) |
+| EventManager, Engine\Controller, AJAX, Routing, CSRF, **OnAfterUserAuthorize** | [references/events-routing.md](references/events-routing.md) |
+| Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc, **Repository паттерн** | [references/modules-loader.md](references/modules-loader.md) |
 | Компоненты, CBitrixComponent, шаблоны, кеш в компонентах, CComponentEngine | [references/components.md](references/components.md) |
 | Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path | [references/cache-infra.md](references/cache-infra.md) |
-| Type\DateTime, Type\Date, HttpClient, HttpRequest, HttpResponse | [references/http.md](references/http.md) |
-| Инфоблоки (legacy + D7 ORM), свойства, HL-блоки, события инфоблоков | [references/iblocks.md](references/iblocks.md) |
+| Type\DateTime, Type\Date, HttpClient, HttpRequest, HttpResponse, **CryptoCookie (шифрование кук)** | [references/http.md](references/http.md) |
+| Инфоблоки (legacy + D7 ORM), свойства, HL-блоки, события инфоблоков, **Iblock::wakeUp()** | [references/iblocks.md](references/iblocks.md) |
 | Связь ИБ ↔ HL-блок: directory (UF_XML_ID), hlblock UF (int ID), _REF в ORM, runtime Reference, AbstractOrmRepository с HL | [references/iblock-hl-relations.md](references/iblock-hl-relations.md) |
 | XSS, SQL-инъекции, CSRF, права доступа, CurrentUser, ActionFilter | [references/security.md](references/security.md) |
 | REST-методы, OnRestServiceBuildDescription, события REST, Webhook, OAuth, HttpClient | [references/rest.md](references/rest.md) |

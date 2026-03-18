@@ -213,6 +213,26 @@ $entity = IblockTable::compileEntity('news'); // 'news' = API_CODE (lowercase)
 // IblockTable::compileEntity принимает строку (API_CODE) или объект Iblock
 $dataClass = $entity->getDataClass(); // строка с FQN класса
 $result = $dataClass::getList([...]);
+
+// Вариант 3 — wakeUp по ID (наиболее правильный D7-способ когда знаешь ID, но не API_CODE)
+use Bitrix\Iblock\Iblock;
+
+$entityDataClass = Iblock::wakeUp($iblockId)->getEntityDataClass();
+// getEntityDataClass() возвращает FQN класса (строка) или null если нет API_CODE
+// Это эквивалент IblockTable::compileEntity(API_CODE)->getDataClass()
+// но работает напрямую по ID без предварительного получения API_CODE
+
+// Всегда проверяй результат — null если у инфоблока не задан API_CODE
+if ($entityDataClass === null) {
+    throw new \RuntimeException("Инфоблок #$iblockId не имеет API_CODE — D7 ORM недоступен");
+}
+
+$result = $entityDataClass::getList([
+    'select' => ['ID', 'NAME', 'CODE'],
+    'filter' => ['=ACTIVE' => 'Y', '=ID' => $productId],
+    'limit'  => 1,
+]);
+$product = $result->fetch();
 ```
 
 **Namespace и имя класса:**

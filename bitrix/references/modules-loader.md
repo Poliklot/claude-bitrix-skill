@@ -213,6 +213,119 @@ return [
 ];
 ```
 
+### Repository паттерн
+
+Repository изолирует работу с хранилищем (DB, Cookie, Cache) от бизнес-логики. Архитектурная цепочка: **Controller → Service → Repository → DataManager/Cookie**.
+
+Это позволяет:
+- менять хранилище (DB → Redis) без изменения сервиса
+- тестировать сервис с mock-репозиторием
+- не дублировать ORM-запросы по всему коду
+
+```php
+namespace Vendor\Favorites\Repository;
+
+use Vendor\Favorites\Model\FavoriteTable;
+
+final class FavoriteRepository
+{
+    public function findByUserId(int $userId): array
+    {
+        return FavoriteTable::getList([
+            'select' => ['ID', 'PRODUCT_ID', 'CREATED_AT'],
+            'filter' => ['=USER_ID' => $userId],
+            'order'  => ['ID' => 'DESC'],
+        ])->fetchAll();
+    }
+
+    public function exists(int $userId, int $productId): bool
+    {
+        return FavoriteTable::getCount([
+            '=USER_ID'    => $userId,
+            '=PRODUCT_ID' => $productId,
+        ]) > 0;
+    }
+
+    public function add(int $userId, int $productId): \Bitrix\Main\ORM\Data\AddResult
+    {
+        return FavoriteTable::add([
+            'USER_ID'    => $userId,
+            'PRODUCT_ID' => $productId,
+            'CREATED_AT' => new \Bitrix\Main\Type\DateTime(),
+        ]);
+    }
+
+    public function deleteByUserAndProduct(int $userId, int $productId): \Bitrix\Main\ORM\Data\DeleteResult
+    {
+        $row = FavoriteTable::getList([
+            'select' => ['ID'],
+            'filter' => ['=USER_ID' => $userId, '=PRODUCT_ID' => $productId],
+            'limit'  => 1,
+        ])->fetch();
+
+        if (!$row) {
+            return new \Bitrix\Main\ORM\Data\DeleteResult();
+        }
+
+        return FavoriteTable::delete($row['ID']);
+    }
+}
+```
+
+Регистрация в `.settings.php` модуля для DI через ServiceLocator:
+
+```php
+'services' => [
+    'value' => [
+        'Vendor.Favorites.FavoriteRepository' => [
+            'className' => \Vendor\Favorites\Repository\FavoriteRepository::class,
+        ],
+        'Vendor.Favorites.FavoriteService' => [
+            'className' => \Vendor\Favorites\Service\FavoriteService::class,
+            'constructorParams' => function() {
+                return [
+                    \Bitrix\Main\DI\ServiceLocator::getInstance()
+                        ->get('Vendor.Favorites.FavoriteRepository'),
+                ];
+            },
+        ],
+    ],
+],
+```
+
+Использование в сервисе:
+
+```php
+namespace Vendor\Favorites\Service;
+
+use Vendor\Favorites\Repository\FavoriteRepository;
+use Bitrix\Main\DI\ServiceLocator;
+
+final class FavoriteService
+{
+    public function __construct(
+        private readonly FavoriteRepository $repository
+    ) {}
+
+    public static function getInstance(): self
+    {
+        return ServiceLocator::getInstance()->get('Vendor.Favorites.FavoriteService');
+    }
+
+    public function toggle(int $userId, int $productId): bool
+    {
+        if ($this->repository->exists($userId, $productId)) {
+            $this->repository->deleteByUserAndProduct($userId, $productId);
+            return false; // удалено
+        }
+        $this->repository->add($userId, $productId);
+        return true; // добавлено
+    }
+}
+```
+
+---
+
 ### Loader — тонкости
 
 ```php

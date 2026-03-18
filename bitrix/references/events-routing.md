@@ -113,6 +113,72 @@ $em->addEventHandler('my.module', 'OnOrderStatusChanged', function(Event $event)
 });
 ```
 
+### Пользовательские события: OnAfterUserAuthorize
+
+`OnAfterUserAuthorize` срабатывает после **любой** успешной авторизации (форма, OAuth, API, cookie-сессия). Это не то же самое, что `OnAfterUserLogin` — последнее срабатывает только при явном вводе логина/пароля. `OnAfterUserAuthorize` охватывает все способы.
+
+Типичный use-case: миграция гостевых данных (корзина, избранное) из cookie в БД при логине.
+
+```php
+// Структура $params для OnAfterUserAuthorize (legacy version=1):
+// [
+//   'USER_ID'            => int,          // ID авторизованного пользователя
+//   'user_id'            => int,          // дублируется (legacy compatibility)
+//   'LOGIN'              => string,
+//   'EXTERNAL_AUTH_ID'   => string|null,  // если внешняя авторизация (OAuth)
+// ]
+
+use Bitrix\Main\Context;
+use Bitrix\Main\Web\CryptoCookie;
+
+class EventHandler
+{
+    public static function onAfterUserAuthorize(array $params): void
+    {
+        $userId = (int)($params['USER_ID'] ?? $params['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return;
+        }
+
+        // Читаем гостевые данные из куки
+        $raw = Context::getCurrent()->getRequest()->getCookie('FAVORITES');
+        if (empty($raw)) {
+            return;
+        }
+
+        $guestIds = json_decode($raw, true);
+        if (!is_array($guestIds) || empty($guestIds)) {
+            return;
+        }
+
+        // Переносим в БД
+        FavoriteService::getInstance()->migrateFromCookie($userId, $guestIds);
+
+        // Удаляем куку (expire в прошлом)
+        $cookie = new CryptoCookie('FAVORITES', '', time() - 3600);
+        $cookie->setPath('/');
+        Context::getCurrent()->getResponse()->addCookie($cookie);
+    }
+}
+```
+
+Регистрация — через `addEventHandlerCompatible` (legacy version=1, параметры передаются по массиву):
+
+```php
+// В include.php модуля (runtime) или в инсталляторе (persistent):
+EventManager::getInstance()->registerEventHandler(
+    'main',
+    'OnAfterUserAuthorize',
+    'vendor.favorites',
+    \Vendor\Favorites\EventHandler::class,
+    'onAfterUserAuthorize'
+);
+```
+
+> **Важно**: `OnAfterUserAuthorize` — legacy-событие, используй `registerEventHandler` (не `registerEventHandlerCompatible`) для persistent-регистрации. Для runtime — `addEventHandlerCompatible`.
+
+---
+
 ### Persistent-регистрация в инсталляторе модуля
 
 ```php
