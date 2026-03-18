@@ -88,10 +88,12 @@ local/modules/vendor.mymodule/
 ├── include.php              ← точка входа, подключается Loader-ом
 ├── .settings.php            ← конфигурация ServiceLocator, роутов, REST
 ├── lib/                     ← PSR-4 корень
-│   ├── service/
-│   │   └── ordermanager.php ← Vendor\Mymodule\Service\OrderManager
-│   └── model/
-│       └── ordertable.php   ← Vendor\Mymodule\Model\OrderTable
+│   ├── OrderTable.php       ← DataManager: ПРЯМО в корне lib (Bitrix-way)
+│   ├── EventHandler.php     ← обработчики событий — тоже в корне
+│   ├── Controller/          ← capital C — как в реальных модулях ядра
+│   │   └── Order.php        ← Vendor\Mymodule\Controller\Order
+│   └── service/             ← lowercase — как в реальных модулях
+│       └── OrderService.php ← Vendor\Mymodule\Service\OrderService
 └── install/
     ├── index.php            ← класс-инсталлятор, extends CModule
     ├── version.php          ← VERSION, VERSION_DATE
@@ -100,6 +102,59 @@ local/modules/vendor.mymodule/
         │   ├── install.sql
         │   └── uninstall.sql
         └── pgsql/
+```
+
+---
+
+### Канонические соглашения: где что лежит
+
+| Тип класса | Путь в lib/ | Пример файла | Пример класса |
+|---|---|---|---|
+| DataManager (ORM-таблица) | `lib/` корень | `lib/OrderTable.php` | `Vendor\Module\OrderTable` |
+| Controller (AJAX/REST) | `lib/Controller/` | `lib/Controller/Order.php` | `Vendor\Module\Controller\Order` |
+| Сервис | `lib/service/` | `lib/service/OrderService.php` | `Vendor\Module\Service\OrderService` |
+| Обработчик событий | `lib/` корень | `lib/EventHandler.php` | `Vendor\Module\EventHandler` |
+| Интеграция с другими модулями | `lib/Integration/` | `lib/Integration/Catalog.php` | `Vendor\Module\Integration\Catalog` |
+| Вспомогательные классы | `lib/helper/` | `lib/helper/Formatter.php` | `Vendor\Module\Helper\Formatter` |
+| Внутренние детали | `lib/internals/` | `lib/internals/...` | не публичный API |
+| Legacy без PSR-4 | `classes/general/` | `classes/general/myclass.php` | регистрируется в `include.php` |
+
+**Регистр директорий:** `Controller/` — capital C (как в ядре), `service/` и `helper/` — lowercase.
+
+---
+
+### Анти-паттерны (что НЕ делать)
+
+```
+# Это Laravel/Symfony-паттерны — в Bitrix так НЕ делают:
+lib/model/OrderTable.php      → правильно: lib/OrderTable.php
+lib/models/                   → нет такой директории в Bitrix-модулях
+lib/repository/               → Repository слой в Bitrix не используется
+lib/Repositories/             → аналогично
+lib/Http/Controllers/         → нет, контроллеры в lib/Controller/
+```
+
+---
+
+### Пример: модуль vendor.favorites
+
+```
+local/modules/vendor.favorites/
+├── include.php
+├── .settings.php
+├── lib/
+│   ├── FavoriteTable.php        ← DataManager (lib root!)
+│   ├── EventHandler.php         ← обработчики событий
+│   ├── Controller/
+│   │   └── Favorite.php         ← AJAX-контроллер
+│   └── service/
+│       └── FavoriteService.php  ← бизнес-логика
+└── install/
+    ├── index.php
+    ├── version.php
+    └── db/mysql/
+        ├── install.sql
+        └── uninstall.sql
 ```
 
 ### include.php
@@ -214,6 +269,8 @@ return [
 ```
 
 ### Repository паттерн
+
+> **Bitrix-way:** Service вызывает DataManager напрямую — это стандарт. Repository-паттерн — дополнительный слой абстракции, оправдан только для сложных модулей с несколькими хранилищами (DB + Redis + Cookie). В типовом модуле — избыточен и выглядит «не по-битриксовому».
 
 Repository изолирует работу с хранилищем (DB, Cookie, Cache) от бизнес-логики. Архитектурная цепочка: **Controller → Service → Repository → DataManager/Cookie**.
 

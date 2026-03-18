@@ -36,6 +36,9 @@ if (!$result->isSuccess()) { /* обработай */ }
 use Bitrix\Main\Type\DateTime;
 $dt = new DateTime();                    // сейчас
 $dt = DateTime::createFromTimestamp($ts);
+
+// 5. DataManager-классы — в корне lib/, НЕ в lib/model/
+// lib/OrderTable.php (правильно)  vs  lib/model/ordertable.php (нет)
 ```
 
 ## Обязательное подтверждение перед изменением данных
