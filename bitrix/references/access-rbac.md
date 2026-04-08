@@ -1,36 +1,61 @@
 # Bitrix Access RBAC — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с контролем доступа на основе ролей: `Bitrix\Main\Access\Permission\PermissionDictionary`, `Role\RoleDictionary`, `BaseAccessController`, `AccessibleController`, таблицами прав `AccessPermissionTable`, `AccessRoleTable`.
+> Reference для Bitrix-скилла. Загружай когда задача связана с D7-доступами на базе `Bitrix\Main\Access\*`: `PermissionDictionary`, `RoleDictionary`, `BaseAccessController`, `AbstractRule`, `AccessPermissionTable`, `AccessRoleTable`.
+>
+> Audit note: проверено по текущему core `main/lib/access/*`.
 
 ## Содержание
-- Архитектура RBAC в Bitrix D7
-- PermissionDictionary: определение прав
-- RoleDictionary: определение ролей
-- AccessController: реализация контроллера доступа
-- Rule: правила проверки
-- Таблицы: AccessPermissionTable, AccessRoleTable
-- Примеры: полный цикл настройки RBAC
+- Архитектура RBAC
+- `PermissionDictionary`
+- `RoleDictionary`
+- `BaseAccessController`
+- `AbstractRule`
+- `AccessPermissionTable` / `AccessRoleTable`
+- Naming convention rule/filter factory
 - Gotchas
 
 ---
 
-## Архитектура
+## Архитектура RBAC
 
-Bitrix D7 предлагает RBAC-фреймворк в `Bitrix\Main\Access\*`.
+Текущий D7-access слой строится вокруг четырёх сущностей:
 
-**Основные концепции:**
-- **Permission** — конкретное право (что можно делать: `view`, `edit`, `delete`)
-- **Role** — набор прав с заданными значениями
-- **AccessController** — проверяет может ли пользователь выполнить действие
-- **Rule** — логика проверки конкретного действия
+- **Permission** — строковый код права
+- **Role** — роль, которой потом сопоставляют значения permission
+- **AccessibleUser** — модель пользователя, умеющая вернуть роли, access-codes и значение permission
+- **AccessController** — orchestration-слой, который грузит пользователя/элемент и запускает rule/filter factory
 
-```
-User → has Roles → Role имеет Permissions → Permission проверяется через Rule
+Схема:
+
+```text
+AccessibleUser
+    └── getPermission(permissionId)
+
+BaseAccessController
+    ├── check()
+    ├── checkByItemId()
+    ├── batchCheck()
+    └── getEntityFilter()
+
+RuleControllerFactory
+    └── \Vendor\Module\Access\Rule\<Action>Rule
+
+FilterControllerFactory
+    └── \Vendor\Module\Access\Filter\<Action>Filter
 ```
 
 ---
 
-## PermissionDictionary: определение прав
+## `PermissionDictionary`
+
+В текущем core `PermissionDictionary` не требует `getPermissions()`. Базовый класс уже умеет:
+
+- `getList()`
+- `getPermission($permissionId)`
+- `getTitle($permissionId)`
+- `getType($permissionId)`
+
+Минимальный словарь выглядит так:
 
 ```php
 namespace MyVendor\MyModule\Access\Permission;
@@ -39,272 +64,226 @@ use Bitrix\Main\Access\Permission\PermissionDictionary;
 
 class MyPermissionDictionary extends PermissionDictionary
 {
-    // Константы прав — используй строки, уникальные в модуле
-    public const MY_ITEM_VIEW   = 'my_item_view';
-    public const MY_ITEM_EDIT   = 'my_item_edit';
-    public const MY_ITEM_DELETE = 'my_item_delete';
-    public const MY_REPORT_VIEW = 'my_report_view';
+    public const ITEM_VIEW   = 'item.view';
+    public const ITEM_EDIT   = 'item.edit';
+    public const ITEM_DELETE = 'item.delete';
+    public const REPORT_MODE = 'report.mode';
 
-    // Описание прав для UI
-    public static function getPermissions(): array
+    public static function getType($permissionId): string
     {
-        return [
-            [
-                'id'    => self::MY_ITEM_VIEW,
-                'title' => 'Просмотр элементов',
-                'type'  => self::TYPE_TOGGLER,  // включено/выключено
-            ],
-            [
-                'id'    => self::MY_ITEM_EDIT,
-                'title' => 'Редактирование элементов',
-                'type'  => self::TYPE_TOGGLER,
-            ],
-            [
-                'id'    => self::MY_ITEM_DELETE,
-                'title' => 'Удаление элементов',
-                'type'  => self::TYPE_TOGGLER,
-            ],
-            [
-                'id'    => self::MY_REPORT_VIEW,
-                'title' => 'Просмотр отчётов',
-                'type'  => self::TYPE_VARIABLES, // список значений
-                'items' => [
-                    ['id' => 'all',  'title' => 'Все отчёты'],
-                    ['id' => 'own',  'title' => 'Только свои'],
-                    ['id' => 'none', 'title' => 'Запрещено'],
-                ],
-            ],
-        ];
+        return match ($permissionId) {
+            self::REPORT_MODE => self::TYPE_VARIABLES,
+            default => self::TYPE_TOGGLER,
+        };
     }
 }
 ```
 
-**Типы прав:**
+Подтверждённые типы:
 
-| Константа | Описание |
-|-----------|----------|
-| `TYPE_TOGGLER` | Вкл/Выкл (VALUE_YES / VALUE_NO) |
-| `TYPE_VARIABLES` | Выбор одного из списка значений |
-| `TYPE_MULTIVARIABLES` | Выбор нескольких из списка |
-| `TYPE_DEPENDENT_VARIABLES` | Зависимые переменные |
+- `TYPE_TOGGLER`
+- `TYPE_VARIABLES`
+- `TYPE_MULTIVARIABLES`
+- `TYPE_DEPENDENT_VARIABLES`
 
-**Предопределённые значения:**
+Подтверждённые значения:
+
 ```php
-PermissionDictionary::VALUE_NO  = 0; // запрещено
-PermissionDictionary::VALUE_YES = 1; // разрешено
+PermissionDictionary::VALUE_NO  = 0;
+PermissionDictionary::VALUE_YES = 1;
 ```
+
+`getList()` строится по константам класса, поэтому локализация обычно идёт через `Loc::loadMessages()` и имена констант.
 
 ---
 
-## RoleDictionary: определение ролей
+## `RoleDictionary`
+
+В текущем core `RoleDictionary` не даёт универсальный метод `getRoles()`. Подтверждён только базовый helper:
 
 ```php
-namespace MyVendor\MyModule\Access\Role;
-
 use Bitrix\Main\Access\Role\RoleDictionary;
 
 class MyRoleDictionary extends RoleDictionary
 {
-    public const ROLE_ADMIN  = 'my_module_admin';
-    public const ROLE_EDITOR = 'my_module_editor';
-    public const ROLE_VIEWER = 'my_module_viewer';
-
-    public static function getRoles(): array
-    {
-        return [
-            [
-                'id'    => self::ROLE_ADMIN,
-                'title' => 'Администратор модуля',
-            ],
-            [
-                'id'    => self::ROLE_EDITOR,
-                'title' => 'Редактор',
-            ],
-            [
-                'id'    => self::ROLE_VIEWER,
-                'title' => 'Наблюдатель',
-            ],
-        ];
-    }
+    public const ROLE_ADMIN  = 'MY_MODULE_ADMIN';
+    public const ROLE_EDITOR = 'MY_MODULE_EDITOR';
+    public const ROLE_VIEWER = 'MY_MODULE_VIEWER';
 }
+
+$title = MyRoleDictionary::getRoleName(MyRoleDictionary::ROLE_ADMIN);
 ```
+
+Практический вывод:
+
+- роли в reference лучше описывать через константы + локализацию
+- хранение и CRUD ролей зависят уже от твоих конкретных таблиц/сервисов модуля
 
 ---
 
-## Rule: логика проверки действия
+## `BaseAccessController`
 
-Каждому действию соответствует `Rule`-класс. Он получает пользователя и параметры, возвращает `bool`.
+`BaseAccessController` уже реализует основной runtime:
 
-```php
-namespace MyVendor\MyModule\Access\Rule;
+- `getInstance($userId)`
+- `can($userId, $action, $itemId = null, $params = null)`
+- `checkByItemId(...)`
+- `check(...)`
+- `batchCheck(...)`
+- `getEntityFilter(...)`
 
-use Bitrix\Main\Access\Rule\AbstractRule;
-use Bitrix\Main\Access\AccessibleItem;
-use MyVendor\MyModule\Access\Permission\MyPermissionDictionary;
-
-class MyItemViewRule extends AbstractRule
-{
-    public function execute(?AccessibleItem $item = null, $params = null): bool
-    {
-        // Суперадмин всегда может
-        if ($this->user->isAdmin()) {
-            return true;
-        }
-
-        // Проверить право MY_ITEM_VIEW
-        $permission = $this->user->getPermission(
-            MyPermissionDictionary::MY_ITEM_VIEW
-        );
-
-        return $permission >= MyPermissionDictionary::VALUE_YES;
-    }
-}
-
-class MyItemEditRule extends AbstractRule
-{
-    public function execute(?AccessibleItem $item = null, $params = null): bool
-    {
-        if ($this->user->isAdmin()) {
-            return true;
-        }
-
-        $permission = $this->user->getPermission(
-            MyPermissionDictionary::MY_ITEM_EDIT
-        );
-
-        // Дополнительно: проверить владельца элемента
-        if ($permission < MyPermissionDictionary::VALUE_YES) {
-            return false;
-        }
-
-        // Если элемент передан — проверить принадлежность
-        if ($item !== null && $item->getOwnerId() !== $this->user->getUserId()) {
-            return false;
-        }
-
-        return true;
-    }
-}
-```
-
----
-
-## BaseAccessController: основной контроллер
+От наследника требуются только две вещи:
 
 ```php
 namespace MyVendor\MyModule\Access;
 
-use Bitrix\Main\Access\BaseAccessController;
 use Bitrix\Main\Access\AccessibleItem;
-use MyVendor\MyModule\Access\Rule\MyItemViewRule;
-use MyVendor\MyModule\Access\Rule\MyItemEditRule;
-use MyVendor\MyModule\Access\Rule\MyItemDeleteRule;
+use Bitrix\Main\Access\BaseAccessController;
+use Bitrix\Main\Access\User\AccessibleUser;
 
 class MyAccessController extends BaseAccessController
 {
-    // Маппинг действий на Rule-классы
-    protected function getRules(): array
+    protected function loadItem(int $itemId = null): ?AccessibleItem
     {
-        return [
-            'view'   => MyItemViewRule::class,
-            'edit'   => MyItemEditRule::class,
-            'delete' => MyItemDeleteRule::class,
-        ];
+        return $itemId ? MyItemModel::createFromId($itemId) : MyItemModel::createNew();
     }
 
-    protected function loadUser(int $userId): \Bitrix\Main\Access\User\AccessibleUser
+    protected function loadUser(int $userId): AccessibleUser
     {
-        return new MyAccessUser($userId);
+        return MyUserModel::createFromId($userId);
     }
 }
 ```
 
----
-
-## Использование контроллера
+Использование:
 
 ```php
-use MyVendor\MyModule\Access\MyAccessController;
-
-$userId = $USER->GetID();
-
-// Статическая проверка (singleton по userId)
-if (!MyAccessController::can($userId, 'view')) {
+if (!MyAccessController::can($USER->GetID(), 'item_view', $itemId))
+{
     ShowError('Недостаточно прав');
     return;
 }
 
-// С элементом
-$item = MyItemTable::getById($itemId)->fetchObject();
-if (!MyAccessController::can($userId, 'edit', $itemId)) {
-    ShowError('Нельзя редактировать этот элемент');
-    return;
-}
-
-// Через экземпляр (больше контроля)
-$controller = MyAccessController::getInstance($userId);
-$canDelete  = $controller->checkByItemId('delete', $itemId);
+$controller = MyAccessController::getInstance((int)$USER->GetID());
+$canEdit = $controller->checkByItemId('item_edit', $itemId);
 ```
 
 ---
 
-## Таблицы хранения прав
+## `AbstractRule`
+
+Правило в текущем core получает `AccessibleController` в конструкторе, а внутри уже имеет `$this->user`.
 
 ```php
-use Bitrix\Main\Access\Permission\AccessPermissionTable;
+namespace MyVendor\MyModule\Access\Rule;
+
+use Bitrix\Main\Access\AccessibleItem;
+use Bitrix\Main\Access\Rule\AbstractRule;
+use MyVendor\MyModule\Access\Permission\MyPermissionDictionary;
+
+class ItemEditRule extends AbstractRule
+{
+    public function execute(AccessibleItem $item = null, $params = null): bool
+    {
+        if ($this->user->isAdmin())
+        {
+            return true;
+        }
+
+        $permission = $this->user->getPermission(MyPermissionDictionary::ITEM_EDIT);
+
+        return $permission !== null && $permission >= MyPermissionDictionary::VALUE_YES;
+    }
+}
+```
+
+Подтверждённая сигнатура:
+
+```php
+abstract public function execute(AccessibleItem $item = null, $params = null): bool;
+```
+
+---
+
+## `AccessPermissionTable` / `AccessRoleTable`
+
+Обе таблицы в `main` — абстрактные базовые классы. Их нельзя использовать как готовые таблицы “из коробки” без собственного наследника с `getTableName()`.
+
+### Роли
+
+```php
+namespace MyVendor\MyModule\Access\Role;
+
 use Bitrix\Main\Access\Role\AccessRoleTable;
 
-// Сохранить права для роли
-AccessPermissionTable::add([
-    'MODULE_ID'     => 'my.module',
-    'ROLE_ID'       => 'my_module_editor',
-    'PERMISSION_ID' => 'my_item_edit',
-    'VALUE'         => 1,
-]);
+class MyAccessRoleTable extends AccessRoleTable
+{
+    public static function getTableName()
+    {
+        return 'b_my_module_role';
+    }
+}
+```
 
-// Получить права роли
-$permissions = AccessPermissionTable::getList([
-    'filter' => [
-        '=MODULE_ID' => 'my.module',
-        '=ROLE_ID'   => 'my_module_editor',
-    ],
-])->fetchAll();
+### Права роли
 
-// Удалить права роли
-AccessPermissionTable::deleteByFilter([
-    '=MODULE_ID' => 'my.module',
-    '=ROLE_ID'   => 'my_module_editor',
+```php
+namespace MyVendor\MyModule\Access\Permission;
+
+use Bitrix\Main\Access\Permission\AccessPermissionTable;
+
+class MyAccessPermissionTable extends AccessPermissionTable
+{
+    public static function getTableName()
+    {
+        return 'b_my_module_permission';
+    }
+}
+```
+
+После этого уже можно делать обычный ORM-CRUD:
+
+```php
+MyAccessPermissionTable::add([
+    'ROLE_ID' => 10,
+    'PERMISSION_ID' => MyPermissionDictionary::ITEM_EDIT,
+    'VALUE' => MyPermissionDictionary::VALUE_YES,
 ]);
 ```
+
+Важно: `AccessPermissionTable` в текущем core сам валидирует иерархию permission-path. Если родительское permission выключено (`VALUE_NO`), дочерние значения могут быть автоматически зажаты вниз.
 
 ---
 
-## Инициализация прав по умолчанию (при установке модуля)
+## Naming convention rule/filter factory
 
-```php
-// В install/index.php или updater
-use Bitrix\Main\Access\Permission\AccessPermissionTable;
-use MyVendor\MyModule\Access\Permission\MyPermissionDictionary;
-use MyVendor\MyModule\Access\Role\MyRoleDictionary;
+`BaseAccessController` по умолчанию использует:
 
-// Дать администратору все права
-foreach (MyPermissionDictionary::getPermissions() as $permission) {
-    AccessPermissionTable::add([
-        'MODULE_ID'     => 'my.module',
-        'ROLE_ID'       => MyRoleDictionary::ROLE_ADMIN,
-        'PERMISSION_ID' => $permission['id'],
-        'VALUE'         => MyPermissionDictionary::VALUE_YES,
-    ]);
-}
+- `RuleControllerFactory`
+- `FilterControllerFactory`
+
+Имена классов собираются автоматически из action:
+
+```text
+Controller namespace: MyVendor\MyModule\Access
+Action: item_edit
+
+Rule class:   MyVendor\MyModule\Access\Rule\ItemEditRule
+Filter class: MyVendor\MyModule\Access\Filter\ItemEditFilter
 ```
+
+То есть action `my_item_delete` превратится в `Rule\MyItemDeleteRule`.
+
+Если такого класса нет, `check()` завершится `UnknownActionException`.
 
 ---
 
 ## Gotchas
 
-- **`BaseAccessController::can()` — singleton**: контроллер кешируется по `userId`. Если права изменились в этом же запросе — кеш не сбрасывается. Используй `new MyAccessController($userId)` для свежей проверки.
-- **`AbstractRule::$this->user->isAdmin()`**: проверяет является ли пользователь суперадмином Bitrix (группа 1). Всегда проверяй это первым.
-- **Загрузка пользователя**: `loadUser()` вызывается один раз при создании контроллера. Реализуй `MyAccessUser` корректно — он должен загружать роли пользователя из БД.
-- **`TYPE_TOGGLER` не равен `bool`**: значение хранится как `int` (0 = нет, 1 = да). Сравнивай через `>= VALUE_YES`, не через `=== true`.
-- **Таблица `AccessPermissionTable` мультимодульная**: указывай `MODULE_ID` при всех операциях — иначе получишь права всех модулей.
-- **Rule без элемента**: `$item` в `execute()` может быть `null` — при проверке действия без конкретного объекта.
+- `PermissionDictionary::getList()` строится по константам класса. Не выдумывай отдельный обязательный `getPermissions()` — он не является core-contract текущего `main`.
+- `RoleDictionary` в базовом виде умеет только `getRoleName()`. Полный “список ролей” — ответственность конкретного модуля.
+- `AccessPermissionTable` и `AccessRoleTable` абстрактные. Для реального хранения прав нужен собственный наследник с `getTableName()`.
+- `BaseAccessController::can()` кеширует экземпляр контроллера по `userId`. Если в этом же запросе ты поменял роли/права и хочешь свежую проверку, создавай новый controller осознанно.
+- `AbstractRule::$this->user->isAdmin()` проверяет суперадмина Bitrix, а не произвольную бизнес-роль модуля.
+- `$item` в `execute()` может быть `null`. Rule должна это корректно переживать.
+- Для массовых выборок полезен `getEntityFilter()`, но фильтр появится только если для action существует соответствующий `Filter\<Action>Filter`.

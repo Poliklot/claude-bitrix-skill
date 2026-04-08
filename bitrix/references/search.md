@@ -1,5 +1,7 @@
 # Поиск (модуль search)
 
+> Audit note: ниже сверено с текущим `www/bitrix/modules/search`. Подтверждены события `BeforeIndex`, `OnSearch`, `OnSearchGetURL` и типовой порядок `Search(...) -> NavStart(...) -> GetNext()`.
+
 ```php
 use Bitrix\Main\Loader;
 Loader::includeModule('search');
@@ -138,10 +140,8 @@ if ($obSearch->errorno != 0) {
 
 ```php
 $obSearch = new CSearch();
-$obSearch->SetPageSize(20);        // элементов на страницу
-$obSearch->NavStart();             // активировать навигацию
-
 $obSearch->Search([...]);
+$obSearch->NavStart(20, false);    // PAGE_RESULT_COUNT, без "показать всё"
 
 // Страницы
 $obSearch->NavPrint('Поиск');      // стандартная навигация Bitrix
@@ -170,11 +170,10 @@ namespace MyVendor\MyModule;
 
 class SearchHandler
 {
-    public static function onBeforeIndex(array $arFields): ?array
+    public static function onBeforeIndex(array $arFields): array
     {
-        // Вернуть null или false — отменить индексацию
         if ($arFields['MODULE_ID'] === 'iblock' && $arFields['PARAM1'] === 'private') {
-            return null;  // не индексировать
+            $arFields['TAGS'] .= ', private';
         }
 
         // Можно изменить данные
@@ -184,7 +183,7 @@ class SearchHandler
 }
 ```
 
-> **Gotcha:** Обработчик `BeforeIndex` получает массив с уже добавленными `MODULE_ID` и `ITEM_ID`, но ядро удаляет их перед записью — это нормальное поведение.
+> **Gotcha:** В текущем core `BeforeIndex` обрабатывает только массив, который вернул обработчик. `return null/false` не отменяет индексацию автоматически, а просто игнорируется. Если нужно пропустить запись, делай это до вызова `CSearch::Index()`.
 
 ---
 
@@ -202,6 +201,24 @@ EventManager::getInstance()->addEventHandler(
     }
 );
 ```
+
+## Событие OnSearchGetURL — построение итогового URL результата
+
+```php
+EventManager::getInstance()->addEventHandler(
+    'search',
+    'OnSearchGetURL',
+    function(array $row): ?string {
+        if ($row['MODULE_ID'] === 'my.module') {
+            return '/custom/path/' . $row['ITEM_ID'] . '/';
+        }
+
+        return null;
+    }
+);
+```
+
+`OnSearch` и `OnSearchGetURL` — разные этапы: первый добавляет query-параметры к URL выдачи, второй может подменить сам URL результата при `Fetch()/GetNext()`.
 
 ---
 

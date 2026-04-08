@@ -1,6 +1,8 @@
 # Bitrix Инфоблоки и HL-блоки — справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с инфоблоками (CIBlockElement, CIBlockSection), D7 ORM для инфоблоков (IblockTable::compileEntity, API_CODE), свойствами (PropertyTable), или высоконагруженными блоками (HighloadBlockTable).
+>
+> Audit note: ниже сверено с текущим `www/bitrix/modules/iblock`. Подтверждены `PROPERTY_*`, `CIBlockElement::GetByID()`, `IblockTable::compileEntity($apiCode)` и `Iblock::wakeUp($id)->getEntityDataClass()`. Формат множественных legacy-свойств в `GetNext()` считай нестабильным и проверяй по фактическому запросу.
 
 ## Содержание
 - CIBlockElement::GetList — полная сигнатура, фильтры, select, пагинация
@@ -76,12 +78,8 @@ echo $row['CNT'];
 ### Множественные свойства в GetList
 
 ```php
-// При MULTIPLE='Y': GetNext() возвращает PROPERTY_CODE_VALUE как массив
-$el = $res->GetNext();
-foreach ((array)$el['PROPERTY_TAGS_VALUE'] as $tag) {
-    echo $tag;
-}
-// Полный массив данных (все подполя) через GetNextElement
+// Для MULTIPLE='Y' надёжнее брать свойства через GetNextElement()->GetProperties(),
+// а не полагаться на форму PROPERTY_CODE_VALUE в GetNext().
 while ($obj = $res->GetNextElement()) {
     $arFields = $obj->GetFields();
     $arProps  = $obj->GetProperties(); // все свойства с полной структурой
@@ -131,7 +129,8 @@ CIBlockElement::SetPropertyValuesEx($id, 5, [
 
 // GetByID — одиночный элемент
 $res = CIBlockElement::GetByID($id);
-$arEl = $res->GetNext();   // или ->Fetch() — без урлов
+$arEl = $res->GetNext();   // HTML-экранирование + обработка URL-шаблонов
+// $rawEl = $res->Fetch();  // сырой массив без htmlspecialchars и без подстановки URL
 
 // Delete
 CIBlockElement::Delete($id); // удаляет элемент + все свойства + файлы
@@ -545,4 +544,3 @@ class IblockHandler
 - **`SECTION_ID` vs `IBLOCK_SECTION_ID` в GetList**: `SECTION_ID` — фильтрует по разделу (с учётом `INCLUDE_SUBSECTIONS`); в поле результата — `IBLOCK_SECTION_ID`.
 
 ---
-

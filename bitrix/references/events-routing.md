@@ -1,6 +1,8 @@
 # Bitrix EventManager, Controllers, Routing — справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с событиями модулей, AJAX-контроллерами, Engine\Controller, маршрутизацией (Routing) или CSRF.
+>
+> Audit note (core-verified, current project): справочник сверялся по `www/bitrix/modules/main/lib/eventmanager.php`, `engine/{controller,router,resolver}.php`, `routing/*`, `application.php` и `main/classes/general/user.php`.
 
 ## Содержание
 - EventManager: runtime vs persistent подписка, регистрация в module
@@ -20,7 +22,7 @@
 | Метод | Где хранится | Когда использовать |
 |-------|-------------|-------------------|
 | `addEventHandler()` | в памяти до конца запроса | в `init.php` или `include.php` модуля — работает пока подключён файл |
-| `registerEventHandler()` | в БД `b_module_to_module`, переживает перезапуск | в инсталляторе модуля — постоянная подписка |
+| `registerEventHandler()` / `registerEventHandlerCompatible()` | в БД `b_module_to_module`, переживает перезапуск | в инсталляторе модуля — постоянная подписка |
 
 ### Version 1 vs Version 2 — разные сигнатуры обработчиков
 
@@ -115,17 +117,17 @@ $em->addEventHandler('my.module', 'OnOrderStatusChanged', function(Event $event)
 
 ### Пользовательские события: OnAfterUserAuthorize
 
-`OnAfterUserAuthorize` срабатывает после **любой** успешной авторизации (форма, OAuth, API, cookie-сессия). Это не то же самое, что `OnAfterUserLogin` — последнее срабатывает только при явном вводе логина/пароля. `OnAfterUserAuthorize` охватывает все способы.
+`OnAfterUserAuthorize` в текущем core вызывается в `CUser::Authorize()` после успешной авторизации. Это не то же самое, что `OnAfterUserLogin`: `OnAfterUserLogin` вызывается внутри `CUser::Login()`, а `OnAfterUserAuthorize` привязан именно к успешному `Authorize()` и подходит для пост-логин логики.
 
 Типичный use-case: миграция гостевых данных (корзина, избранное) из cookie в БД при логине.
 
 ```php
-// Структура $params для OnAfterUserAuthorize (legacy version=1):
+// Структура $params для OnAfterUserAuthorize (legacy version=1) в текущем core:
 // [
-//   'USER_ID'            => int,          // ID авторизованного пользователя
-//   'user_id'            => int,          // дублируется (legacy compatibility)
-//   'LOGIN'              => string,
-//   'EXTERNAL_AUTH_ID'   => string|null,  // если внешняя авторизация (OAuth)
+//   'user_fields'   => array,      // поля пользователя, включая ID / LOGIN / EMAIL / ...
+//   'save'          => bool,       // remember me / stored auth
+//   'update'        => bool,       // обновлять ли служебные данные авторизации
+//   'applicationId' => mixed,      // application password / integration context, если есть
 // ]
 
 use Bitrix\Main\Context;
@@ -135,7 +137,7 @@ class EventHandler
 {
     public static function onAfterUserAuthorize(array $params): void
     {
-        $userId = (int)($params['USER_ID'] ?? $params['user_id'] ?? 0);
+        $userId = (int)($params['user_fields']['ID'] ?? 0);
         if ($userId <= 0) {
             return;
         }
@@ -162,11 +164,11 @@ class EventHandler
 }
 ```
 
-Регистрация — через `addEventHandlerCompatible` (legacy version=1, параметры передаются по массиву):
+Регистрация legacy-обработчика:
 
 ```php
-// В include.php модуля (runtime) или в инсталляторе (persistent):
-EventManager::getInstance()->registerEventHandler(
+// В инсталляторе модуля (persistent):
+EventManager::getInstance()->registerEventHandlerCompatible(
     'main',
     'OnAfterUserAuthorize',
     'vendor.favorites',
@@ -175,7 +177,7 @@ EventManager::getInstance()->registerEventHandler(
 );
 ```
 
-> **Важно**: `OnAfterUserAuthorize` — legacy-событие, используй `registerEventHandler` (не `registerEventHandlerCompatible`) для persistent-регистрации. Для runtime — `addEventHandlerCompatible`.
+> **Важно**: `OnAfterUserAuthorize` в текущем core вызывается через legacy-механику `GetModuleEvents(..., true)` / `ExecuteModuleEventEx(...)`. Для runtime-подписки используй `addEventHandlerCompatible()`, для persistent-регистрации в инсталляторе — `registerEventHandlerCompatible()`.
 
 ---
 
@@ -183,7 +185,7 @@ EventManager::getInstance()->registerEventHandler(
 
 ```php
 // /bitrix/modules/my.module/install/index.php — при установке модуля
-\Bitrix\Main\EventManager::getInstance()->registerEventHandler(
+\Bitrix\Main\EventManager::getInstance()->registerEventHandlerCompatible(
     'iblock',                                    // чьё событие слушаем
     'OnBeforeIBlockElementAdd',                  // имя события
     'my.module',                                 // наш модуль
@@ -204,7 +206,7 @@ EventManager::getInstance()->registerEventHandler(
 
 ## Engine: Controllers и AJAX
 
-`Engine\Controller` — стандартный способ обрабатывать AJAX в D7. Всё через одну точку: `/bitrix/services/main/ajax.php?action=vendor.module.controller.action`. Контроллер автоматически: проверяет авторизацию и CSRF, биндит параметры запроса к аргументам метода по типам PHP, упаковывает ответ в JSON `{"status":"success","data":{...}}`.
+`Engine\Controller` — стандартный способ обрабатывать AJAX в D7. Всё идёт через `/bitrix/services/main/ajax.php?action=vendor:module.controller.action`. Контроллер по умолчанию подключает default prefilters, биндит параметры запроса к аргументам метода по типам PHP и упаковывает ответ в JSON.
 
 **Когда использовать Controller вместо отдельного PHP-файла:** всегда в D7-коде. Голые PHP-файлы для AJAX — legacy-подход.
 
@@ -234,7 +236,7 @@ class Order extends Controller
     public function configureActions(): array
     {
         return [
-            // Полностью заменить prefilters (Csrf НЕ нужен для GET)
+            // Полностью заменить prefilters для read-only GET action
             'getList' => [
                 'prefilters' => [
                     new ActionFilter\Authentication(),
@@ -349,29 +351,32 @@ return AjaxJson::createDenied();
 
 ### Вызов с фронтенда
 
-Формат action строится из namespace-регистрации: `\\MyVendor\\MyModule\\Controller` → `'myvendor.mymodule'`, класс `Order`, метод `getListAction` → итого `'myvendor.mymodule.order.getList'`.
+Формат action в `/bitrix/services/main/ajax.php` разбирается как `vendor:module.controller.action`. Для партнёрского модуля `vendor.mymodule` это выглядит так:
+- через `defaultNamespace`: `vendor:mymodule.order.getList`
+- через alias из `controllers.namespaces`: `vendor:mymodule.api.order.getList`
 
 ```javascript
-BX.ajax.runAction('myvendor.mymodule.order.getList', {
+BX.ajax.runAction('vendor:mymodule.order.getList', {
     data: { page: 1, limit: 20 },
 }).then(response => {
     console.log(response.data); // { items: [...], total: N }
 });
 
 // POST с CSRF-токеном
-BX.ajax.runAction('myvendor.mymodule.order.create', {
+BX.ajax.runAction('vendor:mymodule.order.create', {
     method: 'POST',
     data: { title: 'Новый заказ', sessid: BX.bitrix_sessid() },
 });
 ```
 
 ```php
-// Регистрация в /bitrix/modules/my.module/.settings.php
+// Регистрация в /bitrix/modules/vendor.mymodule/.settings.php
 return [
     'controllers' => [
         'value' => [
+            'defaultNamespace' => '\\Vendor\\Mymodule\\Controller',
             'namespaces' => [
-                '\\MyVendor\\MyModule\\Controller' => 'myvendor.mymodule',
+                '\\Vendor\\Mymodule\\Controller' => 'api',
             ],
         ],
         'readonly' => true,
@@ -383,18 +388,22 @@ return [
 
 ## Routing (Bitrix\Main\Routing)
 
-Роутер работает **вместо** стандартного `urlrewrite.php` для указанных URL. Роуты обрабатываются раньше компонентов — это позволяет строить чистые REST-подобные URL без `.htaccess`.
+В текущем core роутер инициализируется в `Bitrix\Main\Application::initializeRouter()`. Подтверждается такой bootstrap:
+- читается глобальная конфигурация `routing.config`
+- ищутся файлы `/local/routes/<file>` и `/bitrix/routes/<file>`
+- дополнительно подключается системный `/bitrix/routes/web_bitrix.php`, если он существует
+- route-файл должен вернуть callable вида `function (RoutingConfigurator $routes) { ... }`
 
-**Настройка**: файл маршрутов не подключается автоматически — нужно объявить его имя в `.settings.php` сайта (обычно `bitrix/.settings.php` или `bitrix/.settings_extra.php`):
+Поведение относительно `urlrewrite.php`, компонентов и project bootstrap зависит от конкретной сборки, поэтому не обещай порядок обработки “по памяти” — проверяй текущий проект.
+
+**Настройка**: имя route-файла объявляется в глобальной `.settings.php` проекта:
 
 ```php
 // Добавить в .settings.php:
 'routing' => ['value' => ['config' => ['web.php']], 'readonly' => false],
 ```
 
-После этого ядро ищет файл по путям `local/routes/web.php` и `bitrix/routes/web.php`. Приоритет у `local/`.
-
-Роутер удобен для: REST API, SPA-бэкендов, кастомных страниц без компонентов. **Не замена** компонентному подходу для обычных страниц.
+После этого ядро ищет `local/routes/web.php` и `bitrix/routes/web.php`.
 
 ```php
 // local/routes/web.php
@@ -416,14 +425,23 @@ return function (RoutingConfigurator $routes): void {
         $routes->delete('/orders/{id}/', [\MyVendor\MyModule\Controller\Order::class, 'deleteAction']);
     });
 
-    // Группа с middleware
-    $routes->middleware(\Bitrix\Main\Routing\Middleware\Auth::class)
-        ->prefix('/admin/api')
-        ->group(function (RoutingConfigurator $routes): void {
-            $routes->get('/stats/', [\MyVendor\MyModule\Controller\Stats::class, 'getAction']);
-        });
+    // Именованный маршрут + default value
+    $routes->get('/api/report/{format}/', [\MyVendor\MyModule\Controller\Report::class, 'getAction'])
+        ->name('api.report')
+        ->default('format', 'json')
+        ->where('format', 'json|csv');
 };
 ```
 
----
+Что подтверждается по `routing/*` в текущем core:
+- `RoutingConfigurator` поддерживает `get/post/put/patch/options/delete/any/group`
+- options DSL включает `middleware`, `prefix`, `name`, `domain`, `where`, `default`
+- `where()` задаёт regexp для `{param}`
+- `default()` делает параметр необязательным и подставляет значение по умолчанию
+- `Router::route($name, $parameters)` умеет собирать URL по имени маршрута
 
+Что нужно проверять отдельно в проекте:
+- как именно исполняются `middleware` из route options
+- где route-controller связывается с HTTP response в вашем приложении
+
+---

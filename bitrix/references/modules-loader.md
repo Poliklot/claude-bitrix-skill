@@ -1,6 +1,8 @@
 # Bitrix Модули, Loader, Application — справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с созданием модуля, Loader, PSR-4 автозагрузкой, Application, ServiceLocator, Config\Option или локализацией.
+>
+> Audit note (core-verified, current project): справочник сверялся по `www/bitrix/modules/main/lib/{loader.php,di/servicelocator.php}`, `main/lib/engine/resolver.php` и установленным module `.settings.php`.
 
 ## Содержание
 - Application и ServiceLocator
@@ -14,15 +16,15 @@
 
 ## Application и сервис-локатор
 
-`Application::getInstance()` — синглтон, точка входа во всё приложение. Через него получаешь соединение с БД, кеш, контекст запроса. `ServiceLocator` — DI-контейнер Bitrix: регистрируешь сервисы один раз (обычно в `include.php` модуля), получаешь их везде по имени. Это позволяет избежать `new MyService()` разбросанных по коду и упрощает замену реализаций.
+`Application::getInstance()` — синглтон, точка входа во всё приложение. Через него получаешь соединение с БД, кеш, контекст запроса. `ServiceLocator` — DI-контейнер Bitrix: регистрируешь сервисы один раз, получаешь их по имени. После успешного `Loader::includeModule($module)` ядро дополнительно вызывает `ServiceLocator::registerByModuleSettings($module)`.
 
 ```php
 $app = \Bitrix\Main\Application::getInstance();
 
-// ServiceLocator — регистрируй в include.php модуля
+// ServiceLocator — типовой lazy registration
 $serviceLocator = \Bitrix\Main\DI\ServiceLocator::getInstance();
 $serviceLocator->addInstanceLazy('myVendor.orderService', [
-    'constructor' => fn() => new \MyVendor\MyModule\OrderService(),
+    'className' => \MyVendor\MyModule\OrderService::class,
 ]);
 // Получай где угодно
 $service = $serviceLocator->get('myVendor.orderService');
@@ -72,7 +74,14 @@ echo Loc::getMessage('MY_MODULE_GREETING', ['#NAME#' => 'Иван']);
 
 ### Архитектурный смысл
 
-Модуль в Bitrix — это изолированная библиотека функциональности с собственной схемой БД, правами, событиями и PSR-4 namespace. Каждый модуль регистрируется в системе через инсталлятор. `Loader::includeModule()` — единственная точка входа; без этого вызова классы модуля **не появятся** в автозагрузчике, даже если файлы физически присутствуют.
+Модуль в Bitrix — это изолированная библиотека функциональности с собственной схемой БД, правами, событиями и PSR-4 namespace. Каждый модуль регистрируется в системе через инсталлятор. В типовом потоке именно `Loader::includeModule()` / `Loader::requireModule()`:
+- проверяет, что модуль установлен
+- ищет его сначала в `local/modules`, потом в `bitrix/modules`
+- регистрирует PSR-4 namespace модуля
+- подключает `include.php`
+- регистрирует `services` из module `.settings.php`
+
+Поэтому для стандартной модульной загрузки не предполагай, что namespace “сам уже доступен” без `includeModule()`. Ручной `Loader::registerNamespace()` — это уже отдельный путь.
 
 **Поиск модуля** — сначала `local/modules/`, потом `bitrix/modules/`. Это позволяет переопределять стандартные модули в `local/`.
 
@@ -576,4 +585,3 @@ class MyClass
 - **`$context->setSite()`** меняет контекст только внутри текущего запроса/процесса. Не влияет на другие запросы или агенты.
 
 ---
-

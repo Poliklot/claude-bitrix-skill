@@ -1,42 +1,41 @@
 # Bitrix Validation Framework — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с валидацией данных через `Bitrix\Main\Validation\ValidationService`, PHP 8 Attributes (`#[Required]`, `#[Email]`, `#[Length]` и др.), или с валидаторами из пространства имён `Bitrix\Main\Validation\Rule\`.
+> Reference для Bitrix-скилла. Загружай когда задача связана с `Bitrix\Main\Validation\ValidationService`, validation attributes из `Bitrix\Main\Validation\Rule\*`, `ValidationResult` и `ValidationError`.
 
-## Содержание
-- Архитектура ValidationService
-- PHP 8 Attributes для валидации
-- Все встроенные валидаторы (таблица)
-- Примеры: простой DTO, вложенные объекты
-- ValidationResult и ValidationError
-- Классовые атрибуты (AtLeastOnePropertyNotEmpty)
-- Gotchas
+## Audit note
 
----
+Проверено по текущему core:
+- `www/bitrix/modules/main/lib/validation/ValidationService.php`
+- `www/bitrix/modules/main/lib/validation/ValidationResult.php`
+- `www/bitrix/modules/main/lib/validation/ValidationError.php`
+- `www/bitrix/modules/main/lib/validation/Rule/*`
+- `www/bitrix/modules/main/lib/validation/Validator/*`
 
-## Архитектура
+## Что реально есть в текущем core
 
-`ValidationService` использует PHP 8 Reflection + Attributes для валидации DTO-объектов.
+Точка входа:
+- `ValidationService::validate(object $object): ValidationResult`
 
-**Ключевые классы:**
-- `ValidationService` — точка входа, метод `validate(object $object): ValidationResult`
-- `ValidationResult` — результат, содержит список `ValidationError`
-- `ValidationError` — ошибка с кодом (именем свойства) и сообщением
+Результаты:
+- `ValidationResult` расширяет `Bitrix\Main\Result`
+- `ValidationError` расширяет `Bitrix\Main\Error`
 
-**Требования:** PHP 8.0+, использует `ReflectionClass` и `ReflectionProperty`.
-
----
+Поддерживаются:
+- property-level атрибуты;
+- class-level атрибуты;
+- рекурсивная валидация вложенных объектов через `Recursive\Validatable`.
 
 ## Базовый пример
 
 ```php
 use Bitrix\Main\Validation\ValidationService;
-use Bitrix\Main\Validation\Rule\NotEmpty;
 use Bitrix\Main\Validation\Rule\Email;
 use Bitrix\Main\Validation\Rule\Length;
-use Bitrix\Main\Validation\Rule\Min;
 use Bitrix\Main\Validation\Rule\Max;
+use Bitrix\Main\Validation\Rule\Min;
+use Bitrix\Main\Validation\Rule\NotEmpty;
 
-class CreateUserRequest
+final class CreateUserRequest
 {
     #[NotEmpty]
     public string $name = '';
@@ -45,105 +44,73 @@ class CreateUserRequest
     #[Email]
     public string $email = '';
 
-    #[NotEmpty]
     #[Length(min: 8, max: 64)]
     public string $password = '';
 
-    #[Min(0)]
+    #[Min(18)]
     #[Max(150)]
     public int $age = 0;
 }
 
-// Использование:
-$request = new CreateUserRequest();
-$request->name  = '';
-$request->email = 'not-an-email';
-$request->password = '123';
-$request->age  = 200;
+$dto = new CreateUserRequest();
+$dto->email = 'not-an-email';
+$dto->password = '123';
 
-$service = new ValidationService();
-$result  = $service->validate($request);
-
-if (!$result->isSuccess()) {
-    foreach ($result->getErrors() as $error) {
-        echo $error->getCode() . ': ' . $error->getMessage() . PHP_EOL;
-        // name: Поле не должно быть пустым
-        // email: Введите корректный email
-        // password: Длина должна быть от 8 до 64 символов
-        // age: Значение не должно превышать 150
-    }
-}
+$result = (new ValidationService())->validate($dto);
 ```
 
----
+## Подтверждённые атрибуты
 
-## Все встроенные Rule-атрибуты (namespace Bitrix\Main\Validation\Rule)
+### Property-level
 
-| Атрибут | Параметры | Описание |
-|---------|-----------|----------|
-| `#[NotEmpty]` | — | Значение не пустое (не `null`, не `''`, не `[]`) |
-| `#[Email]` | — | Валидный email |
-| `#[Phone]` | — | Валидный телефон |
-| `#[PhoneOrEmail]` | — | Телефон или email |
-| `#[Url]` | — | Валидный URL |
-| `#[Length(min?, max?)]` | `min: int`, `max: int` | Длина строки |
-| `#[Min(value)]` | `value: int\|float` | Минимальное числовое значение |
-| `#[Max(value)]` | `value: int\|float` | Максимальное числовое значение |
-| `#[InArray(values)]` | `values: array` | Значение входит в список |
-| `#[RegExp(pattern)]` | `pattern: string` | Соответствие регулярному выражению |
-| `#[PositiveNumber]` | — | Положительное число (> 0) |
-| `#[Range(min, max)]` | `min`, `max` | Числовое значение в диапазоне |
-| `#[Enum(class)]` | `class: string` | Значение является валидным enum-кейсом |
+- `#[NotEmpty(allowZero: bool = false, allowSpaces: bool = false)]`
+- `#[Email(strict: bool = false, domainCheck: bool = false)]`
+- `#[Phone]`
+- `#[PhoneOrEmail(strict: bool = false, domainCheck: bool = false)]`
+- `#[Url]`
+- `#[Length(min: ?int = null, max: ?int = null)]`
+- `#[Min(int $min)]`
+- `#[Max(int $max)]`
+- `#[Range(int $min, int $max)]`
+- `#[InArray(array $validValues, bool $strict = false)]`
+- `#[RegExp(string $pattern, int $flags = 0, int $offset = 0)]`
+- `#[PositiveNumber]`
+- `#[ElementsType(?Enum\Type $typeEnum = null, ?string $className = null)]`
+- `#[Recursive\Validatable]`
 
-### Классовые атрибуты
+### Class-level
 
-| Атрибут | Описание |
-|---------|----------|
-| `#[AtLeastOnePropertyNotEmpty(['prop1', 'prop2'])]` | Хотя бы одно из указанных свойств должно быть заполнено |
+- `#[AtLeastOnePropertyNotEmpty(array $fields, bool $allowZero = false, bool $allowEmptyString = false)]`
 
----
+## Важные отличия от старых описаний
 
-## Классовый атрибут: AtLeastOnePropertyNotEmpty
+В текущем core не подтверждены как встроенные атрибуты:
+- `#[Required]`
+- `#[Enum(...)]`
 
-```php
-use Bitrix\Main\Validation\Rule\AtLeastOnePropertyNotEmpty;
+Вместо этого:
+- для обязательности используется `#[NotEmpty]`;
+- для проверки элементов коллекции есть `#[ElementsType(...)]`;
+- enum `Bitrix\Main\Validation\Rule\Enum\Type` используется как вспомогательный тип внутри `ElementsType`.
 
-#[AtLeastOnePropertyNotEmpty(['phone', 'email'])]
-class ContactRequest
-{
-    public string $phone = '';
-    public string $email = '';
-    public string $name  = 'Иван';
-}
-
-$request = new ContactRequest(); // и phone и email пусты
-$result  = (new ValidationService())->validate($request);
-// Вернёт ошибку: хотя бы одно из полей должно быть заполнено
-```
-
----
-
-## Вложенные объекты (Recursive)
+## Рекурсивная валидация
 
 ```php
-use Bitrix\Main\Validation\Rule\Recursive\Validatable;
 use Bitrix\Main\Validation\Rule\NotEmpty;
+use Bitrix\Main\Validation\Rule\Recursive\Validatable;
 
-class AddressRequest
+final class AddressRequest
 {
     #[NotEmpty]
     public string $city = '';
-
-    #[NotEmpty]
-    public string $street = '';
 }
 
-class OrderRequest
+final class OrderRequest
 {
     #[NotEmpty]
     public string $title = '';
 
-    #[Validatable] // рекурсивная валидация вложенного объекта
+    #[Validatable]
     public AddressRequest $address;
 
     public function __construct()
@@ -151,115 +118,70 @@ class OrderRequest
         $this->address = new AddressRequest();
     }
 }
-
-$order = new OrderRequest();
-$order->title = 'Заказ 1';
-// $order->address->city и $order->address->street пусты
-
-$result = (new ValidationService())->validate($order);
-// Ошибки: address.city, address.street
 ```
 
----
+Если вложенный объект не builtin и поле помечено `#[Validatable]`, `ValidationService` вызывает рекурсивный `validate(...)`.
 
-## ValidationResult и ValidationError
-
-```php
-use Bitrix\Main\Validation\ValidationResult;
-use Bitrix\Main\Validation\ValidationError;
-
-// ValidationResult
-$result = (new ValidationService())->validate($dto);
-
-$result->isSuccess();   // bool
-$result->getErrors();   // ValidationError[]
-$result->addError(new ValidationError('Сообщение', 'field_name'));
-
-// ValidationError
-$error = $result->getErrors()[0];
-$error->getMessage();   // строка с текстом ошибки
-$error->getCode();      // имя свойства (путь: 'address.city' для вложенных)
-$error->hasCode();      // bool
-```
-
----
-
-## Интеграция с Controller (Engine)
+## Class-level правило
 
 ```php
-namespace MyVendor\MyModule\Controller;
+use Bitrix\Main\Validation\Rule\AtLeastOnePropertyNotEmpty;
 
-use Bitrix\Main\Engine\Controller;
-use Bitrix\Main\Error;
-use Bitrix\Main\Validation\ValidationService;
-use MyVendor\MyModule\Request\CreateItemRequest;
-
-class Item extends Controller
+#[AtLeastOnePropertyNotEmpty(['phone', 'email'])]
+final class ContactRequest
 {
-    public function createAction(array $fields): ?array
-    {
-        $request = new CreateItemRequest();
-        $request->title  = (string)($fields['title'] ?? '');
-        $request->sortOrder = (int)($fields['sort'] ?? 100);
-
-        $validationService = new ValidationService();
-        $validationResult  = $validationService->validate($request);
-
-        if (!$validationResult->isSuccess()) {
-            foreach ($validationResult->getErrors() as $error) {
-                $this->addError(new Error($error->getMessage(), $error->getCode()));
-            }
-            return null;
-        }
-
-        // ...создание записи...
-        return ['id' => 42];
-    }
+    public string $phone = '';
+    public string $email = '';
 }
 ```
 
----
+## `ValidationResult` и `ValidationError`
 
-## Собственный валидатор (атрибут)
+`ValidationResult` не добавляет свой API поверх `Result`; он наследует поведение базового результата:
+- `isSuccess()`
+- `getErrors()`
+- `addError(...)`
+- `addErrors(...)`
+
+`ValidationError`:
+- расширяет `Error`;
+- умеет хранить `failedValidator`;
+- поддерживает `string|int` code;
+- даёт `hasCode()`.
+
+## Неинициализированные свойства
+
+Отдельная логика текущего `ValidationService`:
+- если property не инициализировано;
+- у него есть тип;
+- и тип не допускает `null`,
+
+сервис сам добавит ошибку `MAIN_VALIDATION_EMPTY_PROPERTY` с кодом имени свойства.
+
+Это значит, что неинициализированный non-nullable property тоже считается validation-failure, даже без `#[NotEmpty]`.
+
+## Кастомный атрибут
 
 ```php
 use Attribute;
 use Bitrix\Main\Validation\Rule\AbstractPropertyValidationAttribute;
-use Bitrix\Main\Validation\ValidationResult;
-use Bitrix\Main\Validation\ValidationError;
+use Bitrix\Main\Validation\Validator\RegExpValidator;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-class InnValidator extends AbstractPropertyValidationAttribute
+final class Inn extends AbstractPropertyValidationAttribute
 {
-    public function validateProperty(mixed $value): ValidationResult
+    protected function getValidators(): array
     {
-        $result = new ValidationResult();
-
-        $inn = (string)$value;
-        if (!preg_match('/^\d{10}(\d{2})?$/', $inn)) {
-            $result->addError(new ValidationError('Некорректный ИНН', ''));
-        }
-
-        return $result;
+        return [
+            new RegExpValidator('/^\d{10}(\d{2})?$/'),
+        ];
     }
-}
-
-// Использование:
-class CompanyRequest
-{
-    #[NotEmpty]
-    #[InnValidator]
-    public string $inn = '';
 }
 ```
 
----
-
 ## Gotchas
 
-- **PHP 8.0+**: `ValidationService` использует PHP 8 Attributes. На PHP 7.x не работает.
-- **Свойство должно быть инициализировано**: если свойство объявлено без значения и не задано — `ValidationService` добавит ошибку `MAIN_VALIDATION_EMPTY_PROPERTY`. Используй дефолтные значения или nullable типы.
-- **Коды ошибок для вложенных**: для `#[Validatable]` код ошибки формируется как `имяСвойства.кодВнутреннейОшибки` (например `address.city`).
-- **`#[NotEmpty]` vs `required` в ORM**: это разные вещи. ORM-валидация в `getMap()` работает при `add()`/`update()`, Validation\Rule — только при явном вызове `ValidationService::validate()`.
-- **Собственный атрибут**: реализуй `AbstractPropertyValidationAttribute` для свойств или `AbstractClassValidationAttribute` для классов.
-- **Нет автовызова**: `ValidationService::validate()` нужно вызывать явно. Он не интегрирован автоматически в Engine\Controller.
+- Не пиши в справке `#[Required]` и `#[Enum]` как штатные built-in атрибуты: они не подтверждены текущим core.
+- `Min`, `Max` и `Range` в этом core принимают `int`, а не произвольный `int|float`.
+- Для массивов и iterable используй `ElementsType`, а не выдуманный enum-validator.
+- `ValidationResult` — это `Result`, а не отдельный полностью самостоятельный контейнер.

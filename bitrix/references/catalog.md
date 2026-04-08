@@ -6,6 +6,8 @@ Loader::includeModule('catalog');
 Loader::includeModule('iblock');
 ```
 
+> Audit note: в текущем проверенном core модуль `catalog` в `www/bitrix/modules` не найден. Этот файл сейчас отложен до установки магазинного core и не должен быть активным маршрутом в текущей фазе проекта.
+
 ## Архитектура
 
 Модуль `catalog` работает поверх инфоблоков:

@@ -130,13 +130,15 @@ while ($el = $res->GetNext()) {
 
 **Класс:** `CUserTypeHlblock` (модуль `highloadblock`)
 
-**Что хранит:** числовой `ID` HL-записи (int). Хранится в таблице `b_uts_iblock_element` (общая для всех инфоблоков).
+**Что хранит:** числовой `ID` HL-записи (int).
+
+**Где хранится:** зависит от сущности и кратности поля. В текущем core `CUserTypeHlblock` даёт `BASE_TYPE_INT`, а точные таблицы надо смотреть по конкретной сущности: single-value может лежать в основной/UTS-структуре, multiple — в UTM-таблице.
 
 **Настройки:** `SETTINGS['HLBLOCK_ID']` = ID HL-блока, `SETTINGS['HLFIELD_ID']` = ID поля HL для отображения в списке.
 
-**Для чего используют:** произвольные связи элемент → HL-запись, особенно когда значений несколько или нужен автоматический ORM-join.
+**Для чего используют:** произвольные связи сущность → HL-запись, когда нужен `int` ID и/или автоматический `_REF`.
 
-**Регистрация UF:** `ENTITY_ID = 'IBLOCK_ELEMENT'` (глобально для всех инфоблоков).
+**Регистрация UF:** `ENTITY_ID` зависит от сущности. Не предполагай `'IBLOCK_ELEMENT'` вслепую. Для разделов в текущем core типичный паттерн — `IBLOCK_<IBLOCK_ID>_SECTION`, для HL-сущностей — `HLBLOCK_<ID>`.
 
 > Поле называется `UF_BRAND`, `UF_PRODUCER` и т.д. — с префиксом `UF_`.
 
@@ -476,9 +478,10 @@ if ($prop) {
     //   $prop['LINK_IBLOCK_ID'] = ID связанного ИБ
 }
 
-// Проверить UF-поля на элементах ИБ
+// Проверить UF-поля на конкретной UF-enabled сущности
 global $USER_FIELD_MANAGER;
-$ufs = $USER_FIELD_MANAGER->GetUserFields('IBLOCK_ELEMENT', 0, LANGUAGE_ID);
+$entityId = 'IBLOCK_' . PRODUCTS_IBLOCK_ID . '_SECTION';
+$ufs = $USER_FIELD_MANAGER->GetUserFields($entityId, 0, LANGUAGE_ID);
 foreach ($ufs as $uf) {
     if ($uf['USER_TYPE_ID'] === 'hlblock') {
         // Механизм 2: UF_* поле
@@ -507,8 +510,8 @@ foreach ($ufs as $uf) {
 ## Gotchas
 
 - **directory хранит UF_XML_ID, не ID** — частая ошибка: ищут HL-запись по `ID = $value` вместо `UF_XML_ID = $value`
-- **`_REF` только VERSION=2** — `ElementV1Table` не генерирует автоматические reference для UF полей
-- **ENTITY_ID для UF на элементах ИБ = 'IBLOCK_ELEMENT'** (одно для всех ИБ, не 'IBLOCK_ELEMENT_5')
+- **`_REF` добавляется через `CUserTypeHlblock::getEntityReferences()`** — не угадывай имя join-а, смотри реальную compiled entity
+- **ENTITY_ID зависит от сущности** — сначала выясни, где живёт UF-поле в конкретном проекте, потом уже читай/пиши его
 - **`compileEntity` по TABLE_NAME** — всегда ищи HL-блок через `HighloadBlockTable::getRow(['filter'=>['=TABLE_NAME'=>...]])`, затем `compileEntity` с полученным массивом
 - **Runtime Reference на `CODE.VALUE`** — работает только если `CODE` — объявленный relations в скомпилированной сущности; если CODE ещё не в select — join не встроится
 - **N+1 в цикле** — никогда не делай запрос к HL внутри foreach элементов. Загружай весь индекс один раз (загрузка всех записей HL), потом смерживай в памяти

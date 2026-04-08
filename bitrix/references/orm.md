@@ -1,6 +1,8 @@
 # Bitrix D7 ORM — полный справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с ORM, DataManager, CRUD, фильтрами, агрегацией, событиями сущностей, Result/Error паттерном или исключениями ядра.
+>
+> Audit note (core-verified, current project): справочник сверялся по `www/bitrix/modules/main/lib/orm/data/datamanager.php`, `orm/query/{query,result}.php`, `orm/objectify/entityobject.php` и `orm/entity.php`.
 
 ## Содержание
 - DataManager: схема, CRUD, Relations, ExpressionField, транзакции
@@ -18,7 +20,9 @@
 
 ### Архитектурный смысл
 
-ORM в Bitrix — это **DataMapper поверх таблицы**. `DataManager` — базовый класс, от которого наследуется каждая таблица. Он даёт: автоматический CRUD, события (хуки на изменения), объектный API, типизацию полей, валидацию и генерацию JOIN-запросов. Это не ActiveRecord — объект не знает о своей таблице, знает только DataManager.
+ORM в Bitrix — это **DataManager/DataMapper-центричный** слой поверх таблицы. `DataManager` — базовый класс, от которого наследуется каждая таблица. Он даёт: CRUD, события, типизированные поля, JOIN-ы и объектный API.
+
+Важно не описывать текущий D7 ORM как “только массивы”: в этом core реально есть `fetchObject()`, `fetchCollection()`, `EntityObject::save()` и `DataManager::createObject()`. То есть базовая точка входа всё ещё `DataManager`, но объектный слой в ядре присутствует.
 
 Когда создаёшь `OrderTable extends DataManager`, ты описываешь **схему** в `getMap()` и получаешь всё остальное бесплатно.
 
@@ -219,7 +223,7 @@ new ExpressionField(
 
 ### Транзакции
 
-Используй транзакции когда несколько операций должны быть атомарными — либо все успешно, либо ничего. ORM-события `OnAdd`/`OnUpdate`/`OnDelete` сами по себе уже выполняются внутри транзакции DataManager, но для группы связанных add/update нужна явная транзакция.
+Используй транзакции когда несколько операций должны быть атомарными — либо все успешно, либо ничего. В текущем `DataManager` явные `startTransaction()/commitTransaction()` внутри `add/update/delete` не видны, поэтому не обещай “автоматическую транзакцию ORM” без отдельной проверки конкретного сценария.
 
 ```php
 $connection = \Bitrix\Main\Application::getConnection();
@@ -386,26 +390,28 @@ $result = OrderTable::getList([
 
 ## ORM: События сущностей (Entity Events)
 
-Это **хуки жизненного цикла** записи. На каждую операцию (`add`, `update`, `delete`) ядро последовательно вызывает три события. Это позволяет перехватить операцию до, во время и после её выполнения.
+Это **хуки жизненного цикла** записи. На каждую операцию (`add`, `update`, `delete`) ядро последовательно вызывает три события. В текущем core важно не путать их с транзакционными хуками: `OnAdd`/`OnUpdate`/`OnDelete` вызываются в середине pipeline операции, но не “после SQL внутри транзакции”.
 
 На каждую операцию — 9 событий итого:
 
 | Константа DataManager | Имя | Когда | Можно прервать? |
 |---|---|---|---|
 | `EVENT_ON_BEFORE_ADD` | `OnBeforeAdd` | до INSERT | **да** — можно изменить поля или отменить |
-| `EVENT_ON_ADD` | `OnAdd` | внутри транзакции после INSERT | нет |
-| `EVENT_ON_AFTER_ADD` | `OnAfterAdd` | после коммита транзакции | нет |
+| `EVENT_ON_ADD` | `OnAdd` | после валидации и перед INSERT | нет |
+| `EVENT_ON_AFTER_ADD` | `OnAfterAdd` | после INSERT, UF update и cleanCache | нет |
 | `EVENT_ON_BEFORE_UPDATE` | `OnBeforeUpdate` | до UPDATE | **да** |
-| `EVENT_ON_UPDATE` | `OnUpdate` | внутри транзакции после UPDATE | нет |
-| `EVENT_ON_AFTER_UPDATE` | `OnAfterUpdate` | после коммита | нет |
+| `EVENT_ON_UPDATE` | `OnUpdate` | после валидации и перед UPDATE | нет |
+| `EVENT_ON_AFTER_UPDATE` | `OnAfterUpdate` | после UPDATE, UF update и cleanCache | нет |
 | `EVENT_ON_BEFORE_DELETE` | `OnBeforeDelete` | до DELETE | **да** |
-| `EVENT_ON_DELETE` | `OnDelete` | внутри транзакции | нет |
-| `EVENT_ON_AFTER_DELETE` | `OnAfterDelete` | после коммита | нет |
+| `EVENT_ON_DELETE` | `OnDelete` | перед DELETE | нет |
+| `EVENT_ON_AFTER_DELETE` | `OnAfterDelete` | после DELETE, UF delete и cleanCache | нет |
+
+Дополнительно: `DataManager` отправляет и legacy-, и modern namespaced вариант ORM-события, поэтому обработчики в старом и новом стиле могут сосуществовать.
 
 **Когда что использовать:**
 - `OnBefore*` — валидация, автозаполнение полей, проверка бизнес-правил
 - `OnAfter*` — очистка кеша, отправка уведомлений, каскадные операции в других таблицах
-- `On*` (средние) — редко нужны, только если критична точность "внутри транзакции"
+- `On*` (средние) — когда нужно вклиниться в pipeline после валидации, но до фактического сохранения/удаления
 
 ### ORM\EventResult — управление событием
 
@@ -690,4 +696,3 @@ try {
 - Сравнивать `DateTime` через `toString()` — только через `getTimestamp()`
 
 ---
-

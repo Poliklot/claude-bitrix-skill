@@ -1,226 +1,213 @@
-# Bitrix Modern File Upload — справочник
+# Bitrix File Uploader — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с современной загрузкой файлов через `Bitrix\Main\FileUploader\FieldFileUploaderController`, `Bitrix\UI\FileUploader\UploaderController`, `UploadedFilesRegistry`, `UploaderFileSigner`.
+> Reference для Bitrix-скилла. Загружай когда задача связана с загрузкой файлов через `Bitrix\Main\FileUploader\FieldFileUploaderController`, `Bitrix\UI\FileUploader\UploaderController`, `Configuration`, `UploadedFilesRegistry` и `UploaderFileSigner`.
 
-## Содержание
-- Архитектура: FileUploader D7 vs CFile
-- FieldFileUploaderController: параметры и использование
-- Регистрация контроллера
-- Frontend: bitrix:ui.file.input
-- Подтверждение загруженных файлов
-- Работа с UploaderFileSigner (подписанные ID)
-- Gotchas
+## Audit note
 
----
+Проверено по текущему core:
+- `www/bitrix/modules/main/lib/fileuploader/FieldFileUploaderController.php`
+- `www/bitrix/modules/ui/lib/fileuploader/UploaderController.php`
+- `www/bitrix/modules/ui/lib/fileuploader/Configuration.php`
+- `www/bitrix/modules/main/lib/userfield/file/uploadedfilesregistry.php`
+- `www/bitrix/modules/main/lib/userfield/file/uploaderfilesigner.php`
+- `www/bitrix/modules/main/lib/userfield/file/uploadercontextgenerator.php`
 
-## Архитектура
+В этой установке не найден стандартный компонент `bitrix:ui.file.input` внутри `modules/*/install/components`, поэтому не обещай его как гарантированную точку входа. Для фронта ориентируйся на реальный проектный код и на контекст, который собирает core вокруг userfield/file utilities.
 
-`FieldFileUploaderController` — D7-замена ручной загрузки через `CFile::SaveFile()` для UF-полей (пользовательских полей).
+## Что реально есть в core
 
-**Поток загрузки:**
-1. Frontend компонент `bitrix:ui.file.input` запрашивает URL для загрузки
-2. `FieldFileUploaderController` проверяет авторизацию и возвращает `signedFileId`
-3. Файл загружается на сервер, временно хранится в `UploadedFilesRegistry`
-4. При сохранении формы `signedFileId` подтверждается и конвертируется в `FILE_ID`
+### `FieldFileUploaderController`
 
-**Зависимости:**
-- `Bitrix\Main\FileUploader\FieldFileUploaderController` — контроллер для UF-полей
-- `Bitrix\UI\FileUploader\UploaderController` — базовый абстрактный класс (в модуле `ui`)
-- `Bitrix\UI\FileUploader\Configuration` — настройки загрузчика
-- `Bitrix\Main\UserField\File\UploadedFilesRegistry` — реестр временных файлов
-- `Bitrix\Main\UserField\File\UploaderFileSigner` — подписывает/верифицирует fileId
+Это готовый контроллер для UF-файлов. Он:
+- наследует `Bitrix\UI\FileUploader\UploaderController`;
+- валидирует `id`, `cid`, `entityId`, `fieldName`, `multiple`, `signedFileId`;
+- берёт ограничения поля через `$USER_FIELD_MANAGER->GetUserFields(...)`;
+- в `getConfiguration()` настраивает `Configuration`;
+- в `onUploadComplete()` регистрирует файл во внутренних utility/registry механизмах.
 
----
-
-## Регистрация контроллера (AJAX endpoint)
-
-Контроллер регистрируется как обработчик в `Router` или через `Engine\Controller`.
+Подтверждённые опции конструктора:
 
 ```php
-namespace MyVendor\MyModule\Controller;
-
-use Bitrix\Main\Engine\Controller;
-use Bitrix\Main\FileUploader\FieldFileUploaderController;
-use Bitrix\Main\UI\FileUploader\UploaderController;
-
-class FileUpload extends Controller
-{
-    /**
-     * Возвращает конфигурацию загрузчика для frontend.
-     * Вызывается при инициализации компонента.
-     */
-    public function getUploaderAction(string $entityId, string $fieldName): ?array
-    {
-        $uploader = new FieldFileUploaderController([
-            'entityId'  => $entityId,   // идентификатор сущности ('USER', 'MY_ENTITY' и т.д.)
-            'fieldName' => $fieldName,  // имя UF-поля ('UF_PHOTO', 'UF_DOCUMENT')
-            'multiple'  => false,       // разрешить множественную загрузку
-            'cid'       => '',          // component ID (для composite cache)
-        ]);
-
-        return $uploader->getConfiguration()->toArray();
-    }
-}
+[
+    'id' => 0,
+    'cid' => '',
+    'entityId' => '',
+    'fieldName' => '',
+    'multiple' => false,
+    'signedFileId' => '',
+]
 ```
 
----
+`cid` в текущем core проходит regex-проверку на 32 hex-символа.
 
-## Параметры FieldFileUploaderController
+### `UploaderController`
+
+В `ui` это абстрактный базовый класс. Он требует реализовать:
+- `isAvailable(): bool`
+- `getConfiguration(): Configuration`
+- `canUpload(): bool|CanUploadResult`
+- `canView(): bool`
+- `verifyFileOwner(FileOwnershipCollection $files): void`
+- `canRemove(): bool`
+
+Есть стандартные lifecycle hooks:
+- `onUploadStart(...)`
+- `onUploadComplete(...)`
+- `onUploadError(...)`
+
+### `UploadedFilesRegistry`
+
+В текущем core это не сервис `confirm()`. Реально он умеет:
+- `registerFile(int $fileId, string $controlId, string $cid, string $tempFileToken)`
+- `getTokenByFileId(...)`
+- `getCidByFileId(...)`
+- `unregisterFile(...)`
+
+То есть это session-backed registry временных связей `fileId <-> controlId/cid/token`, а не универсальный confirm-API.
+
+### `UploaderFileSigner`
+
+Сигнатура в текущем core:
+
+```php
+new UploaderFileSigner(string $entityId, string $fieldName)
+```
+
+Подтверждённые методы:
+- `sign(int $fileId): string`
+- `verify(string $signedString, int $fileId): bool`
+
+Это важно: `verify()` требует и signed string, и реальный `fileId`.
+
+## Конфигурация загрузчика
+
+В `Bitrix\UI\FileUploader\Configuration` подтверждены методы:
+- `setMaxFileSize(?int $bytes)`
+- `setMinFileSize(int $bytes)`
+- `setAcceptedFileTypes(array $extensions)`
+- `setAcceptOnlyImages(bool $flag = true)`
+- `acceptOnlyImages()`
+- `setImageMinWidth(...)`
+- `setImageMinHeight(...)`
+- `setImageMaxWidth(...)`
+- `setImageMaxHeight(...)`
+- `setImageMaxFileSize(...)`
+- `setImageMinFileSize(...)`
+- `setTreatOversizeImageAsFile(bool)`
+- `setIgnoreUnknownImageTypes(bool)`
+- `toArray()`
+
+В этом core нет подтверждения для методов вроде:
+- `setAllowedFileExtensions(...)`
+- `setMultiple(...)`
+- `setMaxFileCount(...)`
+- `setMaxTotalFileSize(...)`
+
+Не используй их в reference как гарантированный API.
+
+## Как выглядит безопасный базовый паттерн
 
 ```php
 use Bitrix\Main\FileUploader\FieldFileUploaderController;
 
 $controller = new FieldFileUploaderController([
-    // Обязательные
-    'entityId'  => 'MY_MODULE_ITEM',  // string: идентификатор типа сущности
-    'fieldName' => 'UF_ATTACHMENT',   // string: имя UF-поля
-
-    // Опциональные
-    'multiple'      => true,    // bool: разрешить загрузку нескольких файлов
-    'signedFileId'  => '',      // string: подписанный ID существующего файла (при редактировании)
-    'cid'           => '',      // string: component ID (32 hex символа)
-    'id'            => 0,       // int: ID существующего объекта (при редактировании)
+    'entityId' => 'USER',
+    'fieldName' => 'UF_PHOTO',
+    'multiple' => false,
+    'cid' => $cid,
+    'id' => (int)$userId,
 ]);
+
+if (!$controller->isAvailable())
+{
+    throw new \RuntimeException('Uploader is not available');
+}
+
+$config = $controller->getConfiguration()->toArray();
 ```
 
----
+## View mode и edit mode
 
-## Frontend: компонент bitrix:ui.file.input
+Внутренний контекст различается так:
+- edit mode использует `cid`;
+- view mode использует `signedFileId`.
 
-В шаблоне компонента:
+Core-утилита `UploaderContextGenerator` подтверждает оба сценария:
 
 ```php
-use Bitrix\Main\FileUploader\FieldFileUploaderController;
-use Bitrix\UI\FileUploader\Configuration;
+use Bitrix\Main\UserField\File\UploaderContextGenerator;
+use Bitrix\Main\UI\FileInputUtility;
 
-// В PHP-части компонента
-$uploadController = new FieldFileUploaderController([
-    'entityId'  => 'MY_ITEM',
-    'fieldName' => 'UF_FILE',
-    'multiple'  => false,
-]);
-
-$uploaderConfig = $uploadController->getConfiguration();
-
-// В шаблоне (template.php)
-$APPLICATION->IncludeComponent(
-    'bitrix:ui.file.input',
-    '',
+$generator = new UploaderContextGenerator(
+    FileInputUtility::instance(),
     [
-        'INPUT_NAME'   => 'UF_FILE',
-        'INPUT_VALUE'  => $arResult['UF_FILE'] ?? 0,  // текущий FILE_ID или 0
-        'MULTIPLE'     => 'N',
-        'MODULE_ID'    => 'my.module',
-        'UPLOADER_CONFIG' => $uploaderConfig->toArray(),
+        'ID' => 0,
+        'ENTITY_ID' => 'USER',
+        'FIELD_NAME' => 'UF_PHOTO',
+        'MULTIPLE' => 'N',
     ]
 );
+
+$editContext = $generator->getContextInEditMode($cid);
+$viewContext = $generator->getContextForFileInViewMode($fileId);
 ```
 
----
+## Кастомный контроллер
 
-## Подтверждение файлов при сохранении
-
-```php
-use Bitrix\Main\UserField\File\UploadedFilesRegistry;
-use Bitrix\Main\UserField\File\UploaderFileSigner;
-
-// При обработке формы (после submit)
-$signedFileId = $_POST['UF_FILE'] ?? ''; // подписанный ID от frontend
-
-if (!empty($signedFileId)) {
-    // Верифицировать подпись
-    $signer = new UploaderFileSigner();
-
-    if ($signer->verify($signedFileId)) {
-        // Получить реальный FILE_ID из реестра
-        $registry = new UploadedFilesRegistry();
-        $fileId   = $registry->confirm($signedFileId);
-
-        if ($fileId > 0) {
-            // Сохранить $fileId в UF-поле объекта
-            \CUser::Update($userId, ['UF_PHOTO' => $fileId]);
-        }
-    }
-}
-```
-
----
-
-## Собственный UploaderController
-
-Если нужна кастомная логика (проверка размера, типа, квоты):
+Если нужен свой upload controller, ориентируйся на реальный контракт `UploaderController`, а не на выдуманные методы вроде `getOwners()`.
 
 ```php
-namespace MyVendor\MyModule\FileUploader;
+namespace Vendor\Module\FileUploader;
 
-use Bitrix\UI\FileUploader\UploaderController;
 use Bitrix\UI\FileUploader\Configuration;
-use Bitrix\UI\FileUploader\UploadResult;
 use Bitrix\UI\FileUploader\FileOwnershipCollection;
-use CUser;
+use Bitrix\UI\FileUploader\UploaderController;
 
-class ItemFileController extends UploaderController
+final class ItemUploaderController extends UploaderController
 {
-    protected function isAuthorized(): bool
-    {
-        global $USER;
-        return $USER instanceof CUser && $USER->IsAuthorized();
-    }
-
     public function isAvailable(): bool
     {
-        return $this->isAuthorized();
+        global $USER;
+
+        return $USER instanceof \CUser && $USER->IsAuthorized();
     }
 
     public function getConfiguration(): Configuration
     {
         return (new Configuration())
-            ->setMaxFileSize(10 * 1024 * 1024)   // 10 MB
-            ->setAllowedFileExtensions(['.jpg', '.png', '.pdf'])
-            ->setMultiple(false);
+            ->setMaxFileSize(10 * 1024 * 1024)
+            ->setAcceptedFileTypes(['.jpg', '.png', '.pdf']);
     }
 
-    public function getOwners(array $fileIds, FileOwnershipCollection $collection): void
+    public function canUpload(): bool
     {
-        // Определить кому принадлежат загруженные файлы
-        // для удаления временных файлов при отмене
-        foreach ($fileIds as $fileId) {
-            $collection->addCurrentUser($fileId);
+        return true;
+    }
+
+    public function canView(): bool
+    {
+        return true;
+    }
+
+    public function verifyFileOwner(FileOwnershipCollection $files): void
+    {
+        foreach ($files as $file)
+        {
+            $file->markAsOwn();
         }
     }
 
-    public function onUpload(UploadResult $result): void
+    public function canRemove(): bool
     {
-        // Callback после загрузки — доп. обработка
+        return true;
     }
 }
 ```
 
----
-
-## Конфигурация Configuration
-
-```php
-use Bitrix\UI\FileUploader\Configuration;
-
-$config = (new Configuration())
-    ->setMaxFileSize(5 * 1024 * 1024)              // 5 MB
-    ->setMaxTotalFileSize(20 * 1024 * 1024)         // 20 MB итого
-    ->setAllowedFileExtensions(['.jpg', '.jpeg', '.png', '.gif', '.pdf'])
-    ->setMultiple(true)                             // множественная загрузка
-    ->setMaxFileCount(5);                           // не более 5 файлов
-
-// В массив для frontend
-$array = $config->toArray();
-```
-
----
-
 ## Gotchas
 
-- **Модуль `ui` обязателен**: `FieldFileUploaderController` наследует `UploaderController` из `Bitrix\UI\FileUploader\`. Всегда включай `\Bitrix\Main\Loader::includeModule('ui')`.
-- **`signedFileId` истекает**: подписанные ID временны. При редактировании передавай `id` + `signedFileId` существующего файла, иначе файл будет удалён как неподтверждённый.
-- **`cid` должен быть 32 hex символа**: если передаёшь `cid` — проверяй формат. Неверный `cid` молча игнорируется (контроллер присвоит пустую строку).
-- **`UploadedFilesRegistry` — временное хранилище**: файлы в реестре автоматически удаляются через некоторое время если не подтверждены. Всегда вызывай `confirm()` при сохранении.
-- **`entityId` и `fieldName` должны совпадать** при инициализации контроллера и при подтверждении — они являются частью подписи.
-- **Нет прямой работы с `$_FILES`**: весь поток загрузки управляется через `UploaderController`. Не смешивай с `CFile::MakeFileArray($_FILES[...])`.
+- Не обещай `UploadedFilesRegistry::confirm()`: в текущем core такого метода нет.
+- Не вызывай `new UploaderFileSigner()` без аргументов: ему нужны `entityId` и `fieldName`.
+- Не подменяй `Configuration::setAcceptedFileTypes()` на `setAllowedFileExtensions()`: это не подтверждено текущим API.
+- Не обещай стандартный `bitrix:ui.file.input`, пока не увидел его реально в установленном core или в проектном коде.
+- Для `FieldFileUploaderController::canUpload()` мало одной авторизации: там ещё проверяется зарегистрированный `cid` через `FileInputUtility`.

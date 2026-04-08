@@ -2,6 +2,18 @@
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с созданием или изменением страниц в битриксовой админке: списки, формы редактирования, фильтры, групповые действия, меню, права, кастомные типы пользовательских полей.
 
+## Audit note
+
+Проверено по текущему core:
+- `www/bitrix/modules/main/interface/admin_list.php`
+- `www/bitrix/modules/main/interface/admin_form.php`
+- `www/bitrix/modules/main/interface/admin_filter.php`
+- `www/bitrix/modules/main/interface/admin_tabcontrol.php`
+- `www/bitrix/modules/main/interface/admin_lib.php`
+- `www/bitrix/modules/main/include/prolog_admin_*.php`
+
+Главный вывод: админский UI в этом core по-прежнему опирается прежде всего на legacy-слой из `main/interface/*`, а не на какой-то единый новый D7 admin framework.
+
 ## Содержание
 - Анатомия admin-страницы: prolog/epilog
 - CAdminList — список с сортировкой, фильтром, пагинацией

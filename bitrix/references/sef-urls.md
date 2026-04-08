@@ -1,5 +1,11 @@
 # SEF URLs / ЧПУ в Bitrix
 
+## Audit note
+
+Проверено по текущему core:
+- `www/bitrix/modules/main/include/urlrewrite.php`
+- `www/bitrix/modules/main/lib/urlrewriter.php`
+
 ## Как работает urlrewrite
 
 При каждом запросе Bitrix подключает `/bitrix/modules/main/include/urlrewrite.php`, который:
@@ -7,7 +13,7 @@
 2. Итерирует правила (уже отсортированы по приоритету)
 3. Для каждого правила: `preg_match(CONDITION, $requestUri)`
 4. При совпадении:
-   - Если RULE пуст — редиректит на PATH
+   - Если `RULE` пуст — просто берёт `PATH` как исполняемый PHP-файл
    - Если RULE есть — `preg_replace(CONDITION, PATH.'?'.RULE, URI)` → `parse_str` → заполняет `$_GET`
 5. Включает найденный PHP-файл и прекращает обработку
 
@@ -65,13 +71,21 @@ UrlRewriter::update('s1', [
 // Удалить правило
 UrlRewriter::delete('s1', ['CONDITION' => '#^/travels/([^/]+?)/?(\?.*)?$#']);
 
-// Переиндексировать из компонентов (пересоздать urlrewrite.php)
-UrlRewriter::reindexFile('s1');
+// Полная переиндексация активного сайта
+UrlRewriter::reindexAll(0, ['SITE_ID' => 's1']);
 ```
 
-Первый параметр — `SITE_ID` ('s1', 's2' и т.д.).
+Первый параметр для `add/update/delete` — `SITE_ID` (`s1`, `s2` и т.д.).
 
 После `add/delete` правила автоматически пересортировываются: сначала по SORT, затем по убыванию длины CONDITION (более специфичные — выше).
+
+Важно: `reindexFile()` в текущем core имеет сигнатуру
+
+```php
+UrlRewriter::reindexFile($siteId, $rootPath, $path, $maxFileSize = 0)
+```
+
+То есть это не shorthand с одним `siteId`.
 
 ---
 
@@ -148,16 +162,13 @@ UrlRewriter::add('s1', [
 
 ```php
 use Bitrix\Main\Application;
-use Bitrix\Main\Web\HttpClient;
 
 $request = Application::getInstance()->getContext()->getRequest();
 $type = $request->getQuery('type');
 
 // Если пришли по старому URL (?type=...) — редиректим на ЧПУ
 if ($type !== null && !preg_match('#^/travels/[^/?]+/#', $request->getRequestUri())) {
-    $response = Application::getInstance()->getContext()->getResponse();
-    $response->redirect('/travels/' . rawurlencode($type) . '/', true); // true = 301
-    $response->flush('');
+    LocalRedirect('/travels/' . rawurlencode($type) . '/', false, '301 Moved Permanently');
     die();
 }
 ```

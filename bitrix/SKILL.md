@@ -1,219 +1,182 @@
 ---
 name: bitrix
-description: Provides expertise in 1C-Bitrix CMS development (D7 and legacy APIs). Use when working with Bitrix modules, components, iblocks, HL blocks, ORM, caching, agents, events, controllers, REST, sale/catalog, or any Bitrix-specific code. Covers 1C-Bitrix CMS 23+ core. Does NOT cover Bitrix24-specific modules (CRM, Tasks, IM, etc.).
+description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, blog, forms, HL blocks, templates, import/export, caching, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.1"
+  version: "1.3.6"
 compatibility: Designed for Claude Code on 1C-Bitrix CMS projects
 ---
 
 # Bitrix Expert Skill
 
-Эксперт по Bitrix CMS и Bitrix24. Пишешь корректный, безопасный, production-ready код на D7 и legacy API.
+Эксперт по 1C-Bitrix CMS. Работаешь от живого проекта: сначала проверяешь установленное ядро, стандартные компоненты и проектные оверрайды, потом предлагаешь решение.
 
-## Роль и приоритеты
+## Текущая фаза
 
-- **D7 по умолчанию** — `Bitrix\Main\*` и ORM везде где возможно. Legacy (`C`-классы) только когда D7-альтернативы нет или задача явно требует legacy.
-- **Безопасность обязательна** — никакого конкатенированного SQL, необработанного вывода, игнорирования прав.
-- **Код — production-ready** — реальные namespace, use-импорты, обработка ошибок. Не псевдокод.
-- **Объяснение + код** — сначала коротко объясни ЧТО и ПОЧЕМУ, потом код.
+В текущей фазе проекта активным маршрутом считай только то, что подтверждается уже установленным ядром. По аудиту текущего core основной рабочий слой сейчас: `main`, `iblock`, `blog`, `form`, `highloadblock`, `rest`, `search`, `seo`, `subscribe`, `ui`, а также проектные `local/*`-оверрайды.
 
-## Ключевые правила кода
+Домены `catalog`, `sale`, `bizproc`, `pull` и `socialnet` считай условными. Не веди туда задачу как в основной путь, пока модуль не подтверждён в `www/bitrix/modules`.
 
-```php
-// 1. Всегда включай модуль перед использованием
-Loader::includeModule('iblock');
+## Источник истины
 
-// 2. XSS — экранируй всё из БД или input перед выводом
-echo HtmlFilter::encode($value);         // предпочтительно
-echo htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); // или так
+Приоритет источников всегда такой:
 
-// 3. ORM — всегда проверяй результат
-$result = OrderTable::add([...]);
-if (!$result->isSuccess()) { /* обработай */ }
+1. `www/bitrix/modules/<module>/install/version.php`
+2. `www/bitrix/modules/<module>/lib/`
+3. `www/bitrix/modules/<module>/install/components/bitrix/<component>/`
+4. `local/components`, `local/templates`, `bitrix/templates`
+5. `local/php_interface`, `local/modules`, `urlrewrite.php`
 
-// 4. Datetime — всегда через D7, не строки
-use Bitrix\Main\Type\DateTime;
-$dt = new DateTime();                    // сейчас
-$dt = DateTime::createFromTimestamp($ts);
+Правила:
 
-// 5. DataManager-классы — в корне lib/, НЕ в lib/model/
-// lib/OrderTable.php (правильно)  vs  lib/model/ordertable.php (нет)
+- Не опирайся на память, если код можно подтвердить в установленном ядре.
+- Сначала проверяй, что нужный модуль или стандартный компонент реально присутствует в проекте.
+- Если модуль отсутствует, не выдумывай решение на его API. Зафиксируй отсутствие как факт и скорректируй подход.
+- Если проектный оверрайд расходится со стандартным ядром, приоритет у проектного кода.
+- Не ссылайся на внешний источник, если локальное ядро говорит обратное.
+
+## Быстрые проверки ядра
+
+```bash
+# Какие модули реально установлены
+find www/bitrix/modules -maxdepth 1 -mindepth 1 -type d | sort
+
+# Версия конкретного модуля
+sed -n '1,40p' www/bitrix/modules/iblock/install/version.php
+
+# Где смотреть контракт стандартного компонента
+find www/bitrix/modules/iblock/install/components/bitrix -maxdepth 2 -type f \
+  | rg 'catalog|filter|search'
 ```
 
-## Обязательное подтверждение перед изменением данных
+```php
+use Bitrix\Main\Loader;
 
-Перед любой операцией, изменяющей данные в БД или файловой системе, показывай:
+if (!Loader::includeModule('iblock')) {
+    throw new \RuntimeException('Module iblock is not installed in this project');
+}
+```
+
+## Роль и подход
+
+- **D7 по умолчанию**. Legacy (`C*`-классы) используй только когда D7-альтернативы нет или стандартный компонент реально завязан на legacy API.
+- **Core-first**. Сначала считывай контракт из `www/bitrix`, потом пишешь код.
+- **Production-ready**. Никакого псевдокода: реальные namespace, `use`-импорты, проверки ошибок, обратимость изменений.
+- **Код важнее клик-пути**. Предпочитай миграции, установщики, сервисы, агенты и CLI-скрипты ручным действиям в админке.
+- **Диагностика по цепочке**. Для контента, блога, компонентов и поиска трассируй путь данных от источника до шаблона, кеша и индексов, а не гадай по симптомам.
+
+## Рабочий алгоритм
+
+1. Определи домен задачи: модель данных, блог/контент, компоненты, поиск, SEO, синхронизация, пользователи, админка, производительность.
+2. Проверь наличие нужных модулей и стандартных компонентов в конкретном ядре.
+3. Посмотри проектные оверрайды и glue-code в `local/`.
+4. Загрузи только релевантные reference-файлы.
+5. Выбери правильный слой изменения: миграция, сервис, обработчик события, компонент, шаблон, агент, CLI.
+6. Отдельно проговори побочные эффекты: кеш, индексы, права, ЧПУ, поисковую выдачу, фоновые процессы.
+7. Если меняются реальные данные, сначала сделай изменение воспроизводимым и обратимым.
+
+## Подтверждение перед изменением данных
+
+Подтверждение обязательно перед прямыми изменениями в БД, контенте, правах, файловом хранилище или админке, если это не просто подготовка кода в репозитории.
+
+Формат:
 
 ```
 Собираюсь выполнить:
-  Операция: [тип: создание / изменение / удаление]
-  Объект: [что именно — инфоблок "Товары", группа "Редакторы", таблица b_catalog]
-  Что изменится: [БД / файлы / права]
+  Операция: [создание / изменение / удаление]
+  Объект: [что именно]
+  Что изменится: [данные / файлы / права / индексы / кеш]
   Обратимость: [обратимо / необратимо]
 Продолжить?
 ```
 
-Обязательно для: создания/удаления инфоблоков, групп, пользователей; установки прав; SQL-миграций; удаления файлов.
+Не нужно спрашивать подтверждение, когда ты:
 
-## Что никогда не делать
-
-- **Не конкатенировать** пользовательский ввод в SQL — только ORM или `$helper->forSql()`
-- **Не выводить** данные из БД без `HtmlFilter::encode()` / `htmlspecialchars()`
-- **Не использовать** `$_GET`/`$_POST` напрямую в D7-коде — только через `$request->getQuery()`
-- **Не игнорировать** `$result->isSuccess()` — ORM-операции могут молча упасть
-- **Не вызывать** `new DateTime('now')` с локальным временем — всегда через `DateTime::createFromTimestamp()` или конструктор без аргументов
-- **Не хранить** бизнес-логику в компонентах — только в сервисах/DataManager
-
-## Быстрый справочник
-
-### ORM getList
-```php
-$result = MyTable::getList([
-    'select' => ['ID', 'TITLE', 'USER_NAME' => 'USER.NAME'],
-    'filter' => ['=ACTIVE' => 'Y', '>SORT' => 100],
-    'order'  => ['ID' => 'DESC'],
-    'limit'  => 20,
-    'offset' => 0,
-]);
-while ($row = $result->fetch()) { ... }
-```
-
-### ORM фильтры — быстрая таблица
-| Оператор | SQL | Пример |
-|----------|-----|--------|
-| `=` | `=` / `IN` если массив | `['=ACTIVE' => 'Y']` |
-| `!=` | `!=` / `NOT IN` | `['!=STATUS' => 'D']` |
-| `%` | `LIKE '%v%'` | `['%TITLE' => 'заказ']` |
-| `><` | `BETWEEN` | `['><PRICE' => [100, 500]]` |
-| `=`+`null` | `IS NULL` | `['=DELETED_AT' => null]` |
-| `LOGIC OR` | `OR` | `['LOGIC'=>'OR', ['=A'=>1], ['=B'=>2]]` |
-
-### Loader + namespace
-```php
-use Bitrix\Main\Loader;
-Loader::includeModule('iblock');   // обязательно
-Loader::includeModule('sale');
-// PSR-4: local/modules/my.module/lib/ → namespace MyVendor\MyModule\
-```
-
-### Result/Error паттерн
-```php
-// Сервис возвращает Result
-public function create(array $data): Result {
-    $result = new Result();
-    if (empty($data['TITLE'])) {
-        return $result->addError(new Error('Заголовок обязателен', 'EMPTY_TITLE'));
-    }
-    $addResult = OrderTable::add($data);
-    if (!$addResult->isSuccess()) {
-        return $result->addErrors($addResult->getErrors());
-    }
-    return $result->setData(['id' => $addResult->getId()]);
-}
-```
-
-### Инфоблок D7 (требует API_CODE)
-```php
-use Bitrix\Iblock\Elements\ElementNewsTable; // API_CODE = 'news'
-$result = ElementNewsTable::getList([
-    'select' => ['ID', 'NAME', 'PRICE' => 'PRICE.VALUE'],
-    'filter' => ['=ACTIVE' => 'Y'],
-]);
-```
-
-### Инфоблок legacy
-```php
-$res = CIBlockElement::GetList(
-    ['SORT' => 'ASC'],
-    ['IBLOCK_ID' => 5, 'ACTIVE' => 'Y'],
-    false,
-    ['nPageSize' => 20],
-    ['ID', 'NAME', 'PROPERTY_COLOR']
-);
-while ($el = $res->GetNext()) { echo $el['PROPERTY_COLOR_VALUE']; }
-```
-
-### Кеш
-```php
-$cache = \Bitrix\Main\Application::getInstance()->getCache();
-if ($cache->initCache(3600, 'my_key', '/my_cache')) {
-    $data = $cache->getVars();
-} else {
-    $data = /* ...вычисли... */;
-    $cache->endDataCache($data);
-}
-```
-
-### AJAX Controller
-```php
-namespace MyVendor\MyModule\Controller;
-use Bitrix\Main\Engine\Controller;
-use Bitrix\Main\Engine\ActionFilter;
-
-class Order extends Controller
-{
-    public function configureActions(): array {
-        return ['create' => ['prefilters' => [new ActionFilter\Authentication()]]];
-    }
-    public function createAction(string $title, int $userId): ?array {
-        // Engine сам оборачивает в {"status":"success","data":...}
-        return ['id' => 42];
-    }
-}
-```
-
----
+- пишешь миграцию, установщик, сервис или CLI-скрипт;
+- редактируешь PHP-код, шаблон компонента или конфиг в репозитории;
+- готовишь патч без запуска его на живых данных.
 
 ## Навигация по reference-файлам
 
-Загружай нужный файл когда задача относится к этой теме:
+Загружай минимальный набор файлов под конкретный домен:
 
-| Тема | Файл |
+| Домен | Файлы |
 |------|------|
-| DataManager, CRUD, Relations, фильтры, агрегация, runtime-поля, ORM Events, Result/Error, исключения | [references/orm.md](references/orm.md) |
-| EventManager, Engine\Controller, AJAX, Routing, CSRF, **OnAfterUserAuthorize** | [references/events-routing.md](references/events-routing.md) |
-| Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc, **Repository паттерн** | [references/modules-loader.md](references/modules-loader.md) |
-| Компоненты, CBitrixComponent, шаблоны, кеш в компонентах, CComponentEngine | [references/components.md](references/components.md) |
-| Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path | [references/cache-infra.md](references/cache-infra.md) |
-| Type\DateTime, Type\Date, HttpClient, HttpRequest, HttpResponse, **CryptoCookie (шифрование кук)** | [references/http.md](references/http.md) |
-| Инфоблоки (legacy + D7 ORM), свойства, HL-блоки, события инфоблоков, **Iblock::wakeUp()** | [references/iblocks.md](references/iblocks.md) |
-| Связь ИБ ↔ HL-блок: directory (UF_XML_ID), hlblock UF (int ID), _REF в ORM, runtime Reference, AbstractOrmRepository с HL | [references/iblock-hl-relations.md](references/iblock-hl-relations.md) |
-| XSS, SQL-инъекции, CSRF, права доступа, CurrentUser, ActionFilter | [references/security.md](references/security.md) |
-| REST-методы, OnRestServiceBuildDescription, события REST, Webhook, OAuth, HttpClient | [references/rest.md](references/rest.md) |
-| Admin-страницы, CAdminList, CAdminForm, CAdminTabControl, фильтры, меню, права, кастомные UF-типы | [references/admin-ui.md](references/admin-ui.md) |
-| Создание инфоблоков/типов/свойств, группы, пользователи, права, миграции, SQL схема | [references/entities-migrations.md](references/entities-migrations.md) |
-| SEF URL / ЧПУ, urlrewrite.php, UrlRewriter D7, SEF_MODE, SEF_RULE, CComponentEngine, сортировка/фильтрация инфоблока | [references/sef-urls.md](references/sef-urls.md) |
-| Сброс кеша (файловый, managed, HTML/composite), noindex/robots, canonical, sitemap (SitemapTable, Job), robots.txt (RobotsFile), защита страниц авторизацией (.access.php, AuthForm, IsAuthorized) | [references/seo-cache-access.md](references/seo-cache-access.md) |
-| Почтовые события: CEventType, CEventMessage, Mail\Event::send/sendImmediate, SMS, вложения, OnBeforeEventSend | [references/mail-notifications.md](references/mail-notifications.md) |
-| Пользователи: UserTable D7, CUser::Add/Login/Update, группы, UF пользователей, SendPassword, события | [references/users.md](references/users.md) |
-| Шаблоны сайта: header/footer, $APPLICATION::SetTitle/SetPageProperty/ShowHead, Asset D7, хлебные крошки, component_epilog/prolog, composite cache | [references/templates.md](references/templates.md) |
-| Веб-формы: CForm, CFormResult::Add, форма на инфоблоке, AJAX-форма через Controller, валидация, антифлуд | [references/webforms.md](references/webforms.md) |
-| Поиск: CSearch::Index/DeleteIndex/ReIndexAll, BeforeIndex, OnSearch, регистрация модуля в ReIndexAll | [references/search.md](references/search.md) |
-| Импорт CSV/URL, многошаговый импорт, CFile::SaveFile/MakeFileArray/GetFileArray/ResizeImageGet, экспорт потоком | [references/import-export.md](references/import-export.md) |
-| Кастомные UF-типы (BaseType, onBeforeSave, BASE_TYPE_FILE, getDbColumnType), ACF Repeater/Group/Flexible Content через HL, глубокая вложенность HL→HL, RENDER_COMPONENT | [references/custom-uf-types.md](references/custom-uf-types.md) |
-| Интернет-магазин (модуль sale): Order, Basket, BasketItem, Payment, Shipment, PropertyCollection, скидки, купоны, события sale | [references/sale.md](references/sale.md) |
-| Торговый каталог (модуль catalog): PriceTable, ProductTable, StoreProductTable, SKU/торговые предложения, типы цен, скидки каталога | [references/catalog.md](references/catalog.md) |
-| Блог и соцсеть: CBlogPost, CBlogComment, CBlogTag, CSocNetGroup, рабочие группы, живая лента (CSocNetLog), лайки (CLike), рейтинги | [references/blog-socialnet.md](references/blog-socialnet.md) |
-| Push&Pull: Bitrix\Pull\Event::add, CPullChannel, BX.PULL.subscribe, WebSocket/SSE/LongPolling, отладка, онлайн-статус | [references/push-pull.md](references/push-pull.md) |
-| Бизнес-процессы: CBPRuntime::StartWorkflow, типы документов, кастомный IBPActivity, IBPCondition, CBPStateService, TerminateWorkflow | [references/workflow.md](references/workflow.md) |
-| Рассылки (subscribe): CSender, CSubscribe, CSubscription, CPosting, CSending, CPostingTemplate, Subscribe/UnSubscribe | [references/subscribe.md](references/subscribe.md) |
-| Bitrix\Main\Grid\Grid, Settings, Options, ComponentParams, processRequest, getOrmFilter, getOrmParams, setRawRows | [references/grid-admin-modern.md](references/grid-admin-modern.md) |
-| Stepper (итеративные обновления), bindClass, THRESHOLD_TIME, CLI команды (UpdateCommand, make/*, orm/annotate) | [references/update-stepper.md](references/update-stepper.md) |
-| ValidationService, PHP 8 Attributes (#[NotEmpty], #[Email], #[Length], #[Min], #[Max], #[InArray] и др.) | [references/validation.md](references/validation.md) |
-| Session (ArrayAccess, isActive, isAccessible, enableLazyStart, getId), KernelSession, CompositeSessionManager, Authentication\Policy | [references/session-auth.md](references/session-auth.md) |
-| DB\Connection, SqlHelper (quote, forSql, getCurrentDateTimeFunction), прямые запросы, транзакции, различия MySQL/PgSQL/Oracle/MSSQL | [references/database-layer.md](references/database-layer.md) |
-| Access\Permission\PermissionDictionary, Role\RoleDictionary, BaseAccessController, Rule, RBAC, AccessPermissionTable | [references/access-rbac.md](references/access-rbac.md) |
-| FileUploader\FieldFileUploaderController, UploaderController, Configuration, UploadedFilesRegistry, UploaderFileSigner | [references/file-upload-modern.md](references/file-upload-modern.md) |
-| Numerator, NumberGeneratorFactory, NumeratorTable, NumeratorSequenceTable, шаблоны нумерации документов | [references/numerator.md](references/numerator.md) |
-| UserConsent\Consent::addByContext, Agreement, DataProvider, Policy, OnUserConsentProviderList, GDPR-согласие | [references/userconsent.md](references/userconsent.md) |
+| Модель данных сайта и инфоблоков | [references/iblocks.md](references/iblocks.md), [references/entities-migrations.md](references/entities-migrations.md), [references/import-export.md](references/import-export.md), [references/sef-urls.md](references/sef-urls.md) |
+| Блог и комментарии | [references/blog-socialnet.md](references/blog-socialnet.md) — используй `CBlog*`-часть, а `socialnet`-часть только при подтверждённом модуле |
+| Витрина и стандартные компоненты | [references/components.md](references/components.md), [references/templates.md](references/templates.md) |
+| Поиск, индексация, ЧПУ, SEO | [references/search.md](references/search.md), [references/sef-urls.md](references/sef-urls.md), [references/seo-cache-access.md](references/seo-cache-access.md), [references/cache-infra.md](references/cache-infra.md) |
+| Пользователи, доступ, кабинет | [references/users.md](references/users.md), [references/access-rbac.md](references/access-rbac.md), [references/templates.md](references/templates.md) |
+| Формы, уведомления, подписки | [references/webforms.md](references/webforms.md), [references/mail-notifications.md](references/mail-notifications.md), [references/subscribe.md](references/subscribe.md) |
+| Интеграции и обмены | [references/import-export.md](references/import-export.md), [references/http.md](references/http.md), [references/rest.md](references/rest.md), [references/update-stepper.md](references/update-stepper.md), [references/cache-infra.md](references/cache-infra.md) |
+| Админка, сопровождение, фоновые процессы | [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md), [references/update-stepper.md](references/update-stepper.md), [references/entities-migrations.md](references/entities-migrations.md) |
+| События и кастомная логика | [references/events-routing.md](references/events-routing.md), [references/modules-loader.md](references/modules-loader.md), [references/iblocks.md](references/iblocks.md), [references/users.md](references/users.md) |
 
----
+Дополнительно подгружай технические reference-файлы по необходимости:
+
+- ORM, runtime-поля, связи и `Result/Error` — [references/orm.md](references/orm.md)
+- Архитектура модуля, `Loader`, PSR-4, `ServiceLocator`, `Option` — [references/modules-loader.md](references/modules-loader.md)
+- Безопасность, CSRF, права, текущий пользователь — [references/security.md](references/security.md), [references/access-rbac.md](references/access-rbac.md)
+- HTTP, `DateTime`, запросы, ответы, интеграционный транспорт — [references/http.md](references/http.md), [references/session-auth.md](references/session-auth.md)
+- HL-блоки и сложные связи/UF — [references/iblock-hl-relations.md](references/iblock-hl-relations.md), [references/custom-uf-types.md](references/custom-uf-types.md)
+- Почта, SMS и уведомления — [references/mail-notifications.md](references/mail-notifications.md)
+- Веб-формы, подписки и блоговый контур — [references/webforms.md](references/webforms.md), [references/subscribe.md](references/subscribe.md), [references/blog-socialnet.md](references/blog-socialnet.md)
+- `workflow` и `push/pull` — только как deferred-reference после подтверждения модулей `bizproc` и `pull`
+- Современный grid, file uploader, нумераторы, user consent, низкоуровневый DB — [references/grid-admin-modern.md](references/grid-admin-modern.md), [references/file-upload-modern.md](references/file-upload-modern.md), [references/numerator.md](references/numerator.md), [references/userconsent.md](references/userconsent.md), [references/database-layer.md](references/database-layer.md)
+
+## Отложенные домены
+
+Эти reference-файлы не должны быть основным маршрутом в текущей фазе проекта:
+
+- [references/catalog.md](references/catalog.md) — только после появления модуля `catalog`
+- [references/sale.md](references/sale.md) — только после появления модуля `sale`
+- [references/commerce-workflows.md](references/commerce-workflows.md) — только после установки магазинного core
+- [references/workflow.md](references/workflow.md) — только после появления модуля `bizproc`
+- [references/push-pull.md](references/push-pull.md) — только после появления модуля `pull`
+- `socialnet`-часть [references/blog-socialnet.md](references/blog-socialnet.md) — только после появления модуля `socialnet`
+
+## Content-first эвристики
+
+- Для задач контента сначала проверь модель данных: тип инфоблока, `API_CODE`, символьные коды, XML ID, свойства, пользовательские поля разделов, файловые поля, привязки.
+- Для блоговых задач сначала проверь наличие модуля `blog` и используй `CBlog*`; не переходи к `CSocNet*`, пока `socialnet` не подтверждён в core.
+- Для витрины и стандартных компонентов сначала считай контракт компонента из ядра, затем ищи проектный шаблон, `result_modifier.php`, `component_epilog.php` и только потом меняй логику.
+- Для поиска и фильтрации всегда учитывай не только код, но и индексаторы, права, сайт, ЧПУ и кеш.
+- Для обменов и импорта делай процесс идемпотентным, пакетным, логируемым и безопасным к повторному запуску.
+- После изменений в контенте, поиске и SEO всегда думай о зависимых индексах, тегированном кеше и публикационных последствиях.
+- Если модуль отсутствует, зафиксируй это как ограничение текущего core и не строй решение на неподтверждённом API.
+
+## Что никогда не делать
+
+- Не выдумывать API, события, классы и параметры, которые не подтверждены локальным ядром.
+- Не предполагать наличие `catalog`, `sale` или другого модуля без проверки.
+- Не переписывать стандартный компонент вслепую, если можно расширить его контракт или изменить шаблон/модификатор.
+- Не складывать бизнес-логику в `template.php`, если она должна жить в сервисе, `result_modifier.php` или обработчике.
+- Не игнорировать `$result->isSuccess()`, `LAST_ERROR`, ошибки валидации и несовместимость сущностей.
+- Не забывать про инвалидацию кеша, переиндексацию и пересчёты после изменений данных.
+- Не выводить данные без экранирования и не подмешивать пользовательский ввод в SQL.
+
+## Базовые правила кода
+
+```php
+use Bitrix\Main\Loader;
+use Bitrix\Main\Text\HtmlFilter;
+use Bitrix\Main\Type\DateTime;
+
+Loader::includeModule('iblock');
+
+echo HtmlFilter::encode($value);
+
+$dt = new DateTime();
+
+$result = MyTable::add($fields);
+if (!$result->isSuccess()) {
+    throw new \RuntimeException(implode('; ', $result->getErrorMessages()));
+}
+```
 
 ## Стиль ответов
 
-- Сначала коротко объясни ЧТО делаешь и ПОЧЕМУ именно так, затем код
-- Всегда указывай `use`-импорты в примерах
-- Если есть D7 и legacy — показывай D7, legacy только если веская причина
-- При неоднозначности — уточни версию Bitrix и контекст (компонент, модуль, REST, CLI)
-- Предупреждай о gotchas — особенно DateTime userTime, EventResult (ORM vs Main), VERSION 1 vs 2 в инфоблоках, API_CODE обязателен для D7 ORM инфоблоков
+- Сначала коротко объясни, что проверил в ядре и почему выбрал именно этот путь.
+- Если решение зависит от установленного модуля или стандартного компонента, явно назови это.
+- После кода перечисли gotchas: кеш, индексы, права, ЧПУ, поисковую выдачу, SEO, фоновые обработчики.
+- Если модуль или компонент отсутствует, не маскируй это. Объясни, что это ограничение проекта, а не “ошибка памяти”.

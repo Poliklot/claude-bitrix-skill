@@ -253,7 +253,8 @@ echo 'Время: ' . $tracker->getTime() . 'ms' . PHP_EOL;
 - **`query()` vs `queryExecute()`**: `query()` возвращает `Result` с данными (для SELECT), `queryExecute()` — для INSERT/UPDATE/DELETE/DDL, не возвращает строки.
 - **Никогда не конкатенируй `$_GET`/`$_POST` в SQL**: даже через `forSql()` ошибиться легко. Предпочитай ORM.
 - **`quote()` для имён таблиц/колонок**: разные СУБД используют разные символы. Всегда используй `$helper->quote()`, не хардкоди.
-- **Транзакции**: если `startTransaction()` вложены — Bitrix не поддерживает nested transactions для MySQL InnoDB. Используй savepoints вручную.
+- **Вложенные транзакции**: в текущем core MySQL использует savepoints. `startTransaction()` на втором уровне создаёт `SAVEPOINT`, `commitTransaction()` коммитит только на уровне `0`, а `rollbackTransaction()` на вложенном уровне делает `ROLLBACK TO SAVEPOINT` и затем бросает `TransactionException`.
 - **`disableQueryExecuting()` только для тестов**: не вызывай в production-коде. Не забудь `enableQueryExecuting()` после.
 - **`getCurrentDateTimeFunction()`**: возвращает SQL-выражение (строку), не PHP-значение. Используй его в теле SQL-запроса, а не как PHP-переменную.
-- **Соединение не переиспользуется между запросами автоматически**: Bitrix устанавливает одно постоянное соединение на запрос.
+- **`getDisabledQueryExecutingDump()` очищает dump после чтения**: если считал его один раз, второй вызов вернёт уже очищенное состояние.
+- **Соединение живёт в рамках текущего PHP-request**: не рассчитывай на межзапросное состояние, но и не открывай его вручную перед каждым SQL.

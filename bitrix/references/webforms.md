@@ -1,7 +1,12 @@
 # Веб-формы и обратная связь
 
+> Reference для Bitrix-скилла. Загружай когда задача связана с модулем `form`, результатами веб-форм или простыми формами обратной связи на инфоблоке.
+>
+> Audit note: проверено по текущему core `form/classes/general/*`, `form/classes/mysql/*`.
+
 ```php
 use Bitrix\Main\Loader;
+
 Loader::includeModule('form');
 ```
 
@@ -9,93 +14,129 @@ Loader::includeModule('form');
 
 | Подход | Когда использовать |
 |--------|--------------------|
-| **Модуль `form`** (CForm) | Произвольные формы с вопросами, статусами, правами, ограничениями повторной отправки |
-| **Форма на инфоблоке** (CIBlockElement::Add) | Простой сбор заявок в структуру инфоблока — быстрее, проще |
+| **Модуль `form`** (`CForm`, `CFormResult`) | Нужны вопросы, статусы, права, повторные отправки, админский интерфейс результатов |
+| **Простая форма на инфоблоке** | Нужен лёгкий сбор заявок без сложного form-workflow |
 
 ---
 
-## Модуль form — CForm / CFormResult
+## Модуль `form`
 
 ### Получить список форм
 
 ```php
-$res = CForm::GetList($by = 'c_sort', $order = 'asc', $arFilter = ['ACTIVE' => 'Y']);
-while ($form = $res->Fetch()) {
-    // $form['ID'], $form['NAME'], $form['SID'] (символьный код)
+$res = CForm::GetList(
+    $by = 's_sort',
+    $order = 'asc',
+    $arFilter = ['ACTIVE' => 'Y']
+);
+
+while ($form = $res->Fetch())
+{
+    // $form['ID'], $form['NAME'], $form['SID']
 }
 ```
 
-### Получить данные формы по ID
+### Получить структуру формы по ID
 
 ```php
 $arForm = $arQuestions = $arAnswers = $arDropDown = $arMultiSelect = [];
+
 $formId = CForm::GetDataByID(
-    $WEB_FORM_ID,   // int — ID формы
-    $arForm,        // заполняется данными формы
-    $arQuestions,   // заполняется вопросами
-    $arAnswers,     // заполняется вариантами ответов
-    $arDropDown,    // выпадающие списки
-    $arMultiSelect  // множественные списки
+    $WEB_FORM_ID,
+    $arForm,
+    $arQuestions,
+    $arAnswers,
+    $arDropDown,
+    $arMultiSelect,
+    'N', // additional
+    'N'  // active
 );
-// $arForm['NAME'], $arForm['SID'], $arForm['USE_CAPTCHA'], ...
 ```
 
-### Сохранить результат формы из кода
+Это основной способ получить:
+
+- данные формы
+- список вопросов
+- варианты ответов
+- dropdown/multiselect карты
+
+### Сохранить результат формы
 
 ```php
 global $strError;
 
-// $arrValues — массив ответов в формате ['form_<SID>_q<QUESTION_ID>' => 'значение']
-// Обычно берётся из $_POST
-$arrValues = $_POST; // уже содержит нужные ключи если использована стандартная верстка
+$arrValues = $_POST;
 
 $resultId = CFormResult::Add(
-    $WEB_FORM_ID,   // ID формы
-    $arrValues,     // массив значений
-    'Y',            // проверять права ('N' — обходить)
-    false           // USER_ID (false = текущий)
+    $WEB_FORM_ID,
+    $arrValues,
+    'Y',   // проверять права
+    false  // USER_ID; false = текущий пользователь
 );
 
-if ($resultId <= 0) {
-    // $strError — глобальная переменная с текстом ошибки (legacy)
+if ((int)$resultId <= 0)
+{
     $error = $strError;
-} else {
-    // Результат сохранён, отправить почтовое событие
-    CFormResult::SendMail($resultId);
+}
+else
+{
+    CFormResult::Mail($resultId);
 }
 ```
 
-### Получить результаты формы
+> В текущем core подтверждён метод `CFormResult::Mail($RESULT_ID, $TEMPLATE_ID = false)`. `SendMail()` не подтверждён.
+
+### Получить список результатов формы
 
 ```php
-$res = CFormResult::GetListEx(
-    $arOrder  = ['DATE_CREATE' => 'DESC'],
-    $arFilter = ['WEB_FORM_ID' => $formId],
-    $arParams = ['nPageSize' => 20]
+$isFiltered = null;
+
+$res = CFormResult::GetList(
+    $formId,
+    $by = 's_timestamp',
+    $order = 'desc',
+    $arFilter = [
+        'STATUS_ID' => 1,
+    ],
+    $isFiltered,
+    'Y',
+    false
 );
-while ($row = $res->Fetch()) {
-    // $row['ID'], $row['DATE_CREATE'], $row['USER_ID']
 
-    // Получить значения полей конкретного результата
-    $answers = CFormResult::GetDataByID($row['ID']);
-    // $answers — массив вопросов с ответами
+while ($row = $res->Fetch())
+{
+    $arrRES = [];
+    $arrANSWER = [];
+
+    $values = CFormResult::GetDataByID(
+        $row['ID'],
+        [],        // список SID полей; [] = все
+        $arrRES,
+        $arrANSWER
+    );
+
+    // $arrRES    — данные результата
+    // $arrANSWER — ответы по SID
+    // $values    — агрегированный массив значений
 }
 ```
 
-### Отправить почтовое событие для результата
+> `CFormResult::GetListEx(...)` в текущем core не подтверждён. Используй `CFormResult::GetList(...)`.
+
+### Получить один результат
 
 ```php
-// Отправляет письмо по шаблонам, привязанным к статусам формы
-CFormResult::SendMail($resultId);
+$resultDb = CFormResult::GetByID($resultId);
+$result = $resultDb->Fetch();
 ```
+
+Если нужно сразу получить и значения вопросов, используй `CFormResult::GetDataByID(...)`.
 
 ---
 
-## Простая форма на инфоблоке (рекомендуется для заявок)
+## Простая форма на инфоблоке
 
-Если нужна простая форма обратной связи — проще хранить в инфоблоке:
-
-### Создать элемент-заявку из POST
+Если форма небольшая и нет смысла тянуть модуль `form`, часто проще писать в инфоблок.
 
 ```php
 use Bitrix\Main\Application;
@@ -105,39 +146,47 @@ Loader::includeModule('iblock');
 
 $request = Application::getInstance()->getContext()->getRequest();
 
-// Только POST-запрос
-if ($request->isPost() && check_bitrix_sessid()) {
-    $name    = htmlspecialchars($request->getPost('name') ?? '', ENT_QUOTES, 'UTF-8');
-    $email   = $request->getPost('email') ?? '';
+if ($request->isPost() && check_bitrix_sessid())
+{
+    $name = htmlspecialchars($request->getPost('name') ?? '', ENT_QUOTES, 'UTF-8');
+    $email = trim((string)($request->getPost('email') ?? ''));
     $message = htmlspecialchars($request->getPost('message') ?? '', ENT_QUOTES, 'UTF-8');
 
-    // Валидация
-    if (empty($name) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Заполните все обязательные поля';
-    } else {
+    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL))
+    {
+        $error = 'Заполните обязательные поля';
+    }
+    else
+    {
         $el = new CIBlockElement();
         $elementId = $el->Add([
-            'IBLOCK_ID'   => FEEDBACK_IBLOCK_ID,  // константа или из настроек
-            'NAME'        => $name . ' — ' . date('d.m.Y H:i'),
-            'ACTIVE'      => 'Y',
+            'IBLOCK_ID' => FEEDBACK_IBLOCK_ID,
+            'NAME' => $name . ' ' . date('d.m.Y H:i'),
+            'ACTIVE' => 'Y',
             'PROPERTY_VALUES' => [
-                'NAME'    => $name,
-                'EMAIL'   => $email,
+                'NAME' => $name,
+                'EMAIL' => $email,
                 'MESSAGE' => $message,
-                'IP'      => $request->getServer()->get('REMOTE_ADDR'),
+                'IP' => $request->getServer()->get('REMOTE_ADDR'),
             ],
         ]);
 
-        if ($elementId) {
-            // Отправить уведомление
-            use Bitrix\Main\Mail\Event;
-            Event::send([
+        if ($elementId)
+        {
+            \Bitrix\Main\Mail\Event::send([
                 'EVENT_NAME' => 'FEEDBACK_NEW',
-                'LID'        => SITE_ID,
-                'FIELDS'     => ['NAME' => $name, 'EMAIL' => $email, 'MESSAGE' => $message],
+                'LID' => SITE_ID,
+                'FIELDS' => [
+                    'NAME' => $name,
+                    'EMAIL' => $email,
+                    'MESSAGE' => $message,
+                ],
             ]);
+
             $success = true;
-        } else {
+        }
+        else
+        {
             $error = $el->LAST_ERROR;
         }
     }
@@ -148,7 +197,7 @@ if ($request->isPost() && check_bitrix_sessid()) {
 
 ```html
 <form method="POST" action="">
-    <?php echo bitrix_sessid_post(); ?>  <!-- CSRF-токен -->
+    <?php echo bitrix_sessid_post(); ?>
     <input type="text" name="name" required>
     <input type="email" name="email" required>
     <textarea name="message"></textarea>
@@ -158,9 +207,7 @@ if ($request->isPost() && check_bitrix_sessid()) {
 
 ---
 
-## AJAX-форма (без перезагрузки страницы)
-
-### PHP-обработчик (D7 Controller)
+## AJAX-форма через D7 Controller
 
 ```php
 namespace MyVendor\MyModule\Controller;
@@ -169,7 +216,6 @@ use Bitrix\Main\Engine\Controller;
 use Bitrix\Main\Engine\ActionFilter;
 use Bitrix\Main\Error;
 use Bitrix\Main\Loader;
-use Bitrix\Main\Mail\Event;
 
 class Feedback extends Controller
 {
@@ -187,102 +233,71 @@ class Feedback extends Controller
 
     public function sendAction(string $name, string $email, string $message): ?array
     {
-        if (empty($name)) {
+        if ($name === '')
+        {
             $this->addError(new Error('Имя обязательно', 'EMPTY_NAME'));
             return null;
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL))
+        {
             $this->addError(new Error('Неверный email', 'BAD_EMAIL'));
             return null;
         }
 
         Loader::includeModule('iblock');
+
         $el = new \CIBlockElement();
         $id = $el->Add([
             'IBLOCK_ID' => FEEDBACK_IBLOCK_ID,
-            'NAME'      => $name,
-            'PROPERTY_VALUES' => ['EMAIL' => $email, 'MESSAGE' => $message],
+            'NAME' => $name,
+            'PROPERTY_VALUES' => [
+                'EMAIL' => $email,
+                'MESSAGE' => $message,
+            ],
         ]);
 
-        if (!$id) {
+        if (!$id)
+        {
             $this->addError(new Error($el->LAST_ERROR));
             return null;
         }
 
-        Event::send([
+        \Bitrix\Main\Mail\Event::send([
             'EVENT_NAME' => 'FEEDBACK_NEW',
-            'LID'        => SITE_ID,
-            'FIELDS'     => compact('name', 'email', 'message'),
+            'LID' => SITE_ID,
+            'FIELDS' => compact('name', 'email', 'message'),
         ]);
 
         return ['id' => $id];
-        // Engine автоматически вернёт {"status":"success","data":{"id":42}}
     }
 }
 ```
 
-### JS-клиент
+JS:
 
 ```javascript
 BX.ajax.runAction('myvendor.mymodule.feedback.send', {
     data: {
-        sessid: BX.bitrix_sessid(),     // CSRF-токен
-        name:    document.getElementById('name').value,
-        email:   document.getElementById('email').value,
+        sessid: BX.bitrix_sessid(),
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
         message: document.getElementById('message').value,
     }
 }).then(function(response) {
-    // response.data.id
-    console.log('Отправлено, ID:', response.data.id);
+    console.log('ID:', response.data.id);
 }).catch(function(response) {
-    // response.errors[0].message
     console.error(response.errors);
 });
-```
-
-> `BX.ajax.runAction` автоматически добавляет `sessid` если он передан в `data`, подставляет правильный URL контроллера по имени (`myvendor.mymodule.feedback.send` → `/bitrix/services/main/ajax.php?action=...`).
-
----
-
-## Валидация на сервере
-
-```php
-// Типичные проверки при обработке формы
-$errors = [];
-
-$name = trim($request->getPost('name') ?? '');
-if (mb_strlen($name) < 2 || mb_strlen($name) > 100) {
-    $errors[] = 'Имя должно быть от 2 до 100 символов';
-}
-
-$email = trim($request->getPost('email') ?? '');
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $errors[] = 'Некорректный email';
-}
-
-$phone = preg_replace('/[^0-9+]/', '', $request->getPost('phone') ?? '');
-if (!preg_match('/^\+?[0-9]{10,15}$/', $phone)) {
-    $errors[] = 'Некорректный телефон';
-}
-
-// Защита от флуда — один IP не чаще 1 раза в 60 секунд
-$ip = $request->getServer()->get('REMOTE_ADDR');
-$cacheKey = 'feedback_flood_' . md5($ip);
-$cache = \Bitrix\Main\Application::getInstance()->getCache();
-if ($cache->initCache(60, $cacheKey, '/feedback_flood')) {
-    $errors[] = 'Слишком частые отправки';
-} elseif (empty($errors)) {
-    $cache->startDataCache();
-    $cache->endDataCache(['ts' => time()]);
-}
 ```
 
 ---
 
 ## Gotchas
 
-- `CFormResult::Add` читает форму из БД по ID — при каждом вызове идёт запрос. Кешируй `CForm::GetDataByID` если нужно
-- `$strError` в `CFormResult::Add` — **глобальная переменная**, объявляй `global $strError` перед использованием
-- `check_bitrix_sessid()` — обязательно для любой POST-обработки, иначе CSRF-уязвимость
-- При сохранении в инфоблок через `CIBlockElement::Add` — данные из `$request->getPost()`, не из `$_POST` напрямую
-- `BX.ajax.runAction` требует, чтобы контроллер был зарегистрирован в модуле (файл существует и PSR-4 настроен)
+- `CFormResult::GetDataByID()` в текущем core принимает не один `$resultId`, а `($RESULT_ID, $arrFIELD_SID, &$arrRES, &$arrANSWER)`.
+- `CFormResult::Mail()` подтверждён; `CFormResult::SendMail()` и `GetListEx()` в текущем core не подтверждены.
+- `$strError` у `CFormResult::Add()` legacy-глобальный. Если читаешь ошибку, не забудь `global $strError`.
+- `check_bitrix_sessid()` обязателен для обычных POST-форм, даже если форма “простая”.
+- Для AJAX controller сценариев используй `ActionFilter\Csrf`, а не только ручной `sessid`.
+- Если задача не требует статусов, прав и сложной админки формы, инфоблок часто проще и дешевле по сопровождению.

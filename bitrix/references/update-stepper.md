@@ -1,264 +1,191 @@
-# Bitrix Update Stepper + CLI — справочник
+# Bitrix Stepper + CLI — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с итеративными обновлениями данных (`Bitrix\Main\Update\Stepper`), миграционными скриптами в апдейтерах, или с CLI-командами Bitrix (Symfony Console): `UpdateCommand`, `make/*`, `orm/annotate`.
+> Reference для Bitrix-скилла. Загружай когда задача связана с пошаговыми обновлениями данных через `Bitrix\Main\Update\Stepper` или с реальными CLI-командами текущего core.
 
-## Содержание
-- Stepper: архитектура и смысл
-- Реализация абстрактного класса Stepper
-- Привязка к агенту: `Stepper::bindClass()`
-- Выполнение итераций: метод `execute()`
-- Прогресс и состояние
-- CLI-команды (Symfony Console)
-- Gotchas
+## Audit note
 
----
+Проверено по текущему core:
+- `www/bitrix/modules/main/lib/update/stepper.php`
+- `www/bitrix/bitrix.php`
+- `www/bitrix/modules/main/lib/cli/command/*`
 
-## Stepper: архитектура
+Ниже только то, что подтверждается этим ядром.
 
-`Stepper` — абстрактный класс для **итеративных обновлений данных** в рамках лимита времени. Используется в updater-скриптах (`/bitrix/modules/mymodule/updaters/*.php`) когда нужно обновить большую таблицу не за один запрос, а порциями — чтобы не превысить лимит времени выполнения.
+## Stepper: когда использовать
 
-**Принцип работы:**
-1. `Stepper::bindClass($class, $moduleId)` — регистрирует задачу как агент в системе
-2. Агент вызывает статический метод `$class::doStep()` снова и снова
-3. Каждый вызов `doStep()` вызывает `execute()` — твой код обрабатывает порцию данных
-4. Если время `>= THRESHOLD_TIME (20с)` — `doStep()` сохраняет состояние и завершает итерацию
-5. Когда `execute()` вернёт `FINISH_EXECUTION` — агент удаляется
+`Stepper` нужен для долгих обновлений данных порциями через агент. В docblock текущего класса прямо зафиксировано ограничение: используй его для задач, где не меняется схема БД.
 
----
+Типовые случаи:
+- переиндексация или пересчёт существующих записей;
+- заполнение новых полей у большого объёма данных;
+- перенос или нормализация содержимого без `ALTER TABLE`.
 
-## Реализация Stepper
+Не тащи `Stepper` в роль универсальной миграционной системы для DDL. Для изменений таблиц в core нет отдельного встроенного migration-framework.
+
+## Базовый контракт
 
 ```php
-namespace MyVendor\MyModule\Update;
+namespace Vendor\Module\Update;
 
 use Bitrix\Main\Update\Stepper;
-use Bitrix\Main\Config\Option;
-use MyVendor\MyModule\OldDataTable;
-use MyVendor\MyModule\NewDataTable;
 
-class DataMigrationStepper extends Stepper
+final class DataFixStepper extends Stepper
 {
-    // Обязательно: ID модуля для хранения состояния
-    protected static $moduleId = 'my.module';
+    protected static $moduleId = 'vendor.module';
 
-    /**
-     * Метод выполняется в каждой итерации.
-     * $this->outerParams — данные из предыдущей итерации (состояние).
-     *
-     * @return bool CONTINUE_EXECUTION или FINISH_EXECUTION
-     */
+    public static function getTitle(): string
+    {
+        return 'Исправление данных Vendor.Module';
+    }
+
     public function execute(array &$option): bool
     {
-        // Читаем смещение из состояния
         $lastId = (int)($option['lastId'] ?? 0);
-        $batchSize = 100;
+        $limit = 100;
 
-        // Выбираем порцию данных
-        $result = OldDataTable::getList([
+        $rows = MyTable::getList([
             'filter' => ['>ID' => $lastId],
-            'order'  => ['ID' => 'ASC'],
-            'limit'  => $batchSize,
-            'select' => ['ID', 'DATA'],
-        ]);
+            'order' => ['ID' => 'ASC'],
+            'limit' => $limit,
+            'select' => ['ID', 'NAME'],
+        ])->fetchAll();
 
-        $rows = $result->fetchAll();
-
-        if (empty($rows)) {
-            // Данных больше нет — завершаем
-            return static::FINISH_EXECUTION;
+        if (!$rows)
+        {
+            return self::FINISH_EXECUTION;
         }
 
-        foreach ($rows as $row) {
-            // Обрабатываем каждую запись
-            NewDataTable::add([
-                'OLD_ID' => $row['ID'],
-                'DATA'   => strtoupper($row['DATA']),
-            ]);
-            $lastId = $row['ID'];
+        foreach ($rows as $row)
+        {
+            // Обновляем порцию данных.
+            $lastId = (int)$row['ID'];
         }
 
-        // Сохраняем состояние для следующей итерации
         $option['lastId'] = $lastId;
+        $option['steps'] = (int)($option['steps'] ?? 0) + count($rows);
+        $option['count'] = (int)($option['count'] ?? 0) + count($rows);
 
-        // Прогресс (опционально — для UI)
-        $option['steps'] = ($option['steps'] ?? 0) + count($rows);
-        $option['count'] = ($option['count'] ?? 0) + count($rows);
-
-        return static::CONTINUE_EXECUTION;
+        return self::CONTINUE_EXECUTION;
     }
 }
 ```
 
----
+Подтверждённые детали из core:
+- `execute(array &$option)` должен вернуть `Stepper::CONTINUE_EXECUTION` или `Stepper::FINISH_EXECUTION`;
+- прогресс и служебные данные хранятся в `Option` под категорией `main.stepper.<moduleId>`;
+- `steps`, `count`, `title`, `lastTime`, `totalTime`, `thresholdTime`, `delayCoefficient` реально используются ядром.
 
-## Привязка к агенту: bindClass()
+## bind() и bindClass()
 
-В updater-скрипте (`/bitrix/modules/my.module/updaters/updater_20250101.php`):
+В текущем core сигнатуры такие:
 
 ```php
-// Простой вариант
+public static function bind($delay = 300, $withArguments = [])
+public static function bindClass($className, $moduleId, $delay = 300, $withArguments = [])
+```
+
+Это важно: третий аргумент `bindClass()` — не массив параметров, а именно задержка в секундах.
+
+```php
+use Vendor\Module\Update\DataFixStepper;
+
+// Вариант через shortcut текущего класса.
+DataFixStepper::bind(300, [42, 'full']);
+
+// Вариант через общий helper.
 \Bitrix\Main\Update\Stepper::bindClass(
-    'MyVendor\\MyModule\\Update\\DataMigrationStepper',
-    'my.module'
-);
-
-// С параметрами (передаются в $option при первом вызове)
-\Bitrix\Main\Update\Stepper::bindClass(
-    'MyVendor\\MyModule\\Update\\DataMigrationStepper',
-    'my.module',
-    [
-        'lastId' => 0,
-        'steps'  => 0,
-        'count'  => 0,
-        'title'  => 'Миграция данных MyModule',
-    ]
+    DataFixStepper::class,
+    'vendor.module',
+    300,
+    [42, 'full']
 );
 ```
 
-**Как вызывается из updater-файла:**
+Аргументы сериализуются в строку вызова агента через `makeArguments()`. В базовой реализации надёжно поддерживаются строки и числа.
+
+## outerParams и execAgent()
+
+`bind()` и `bindClass()` передают `$withArguments` в `execAgent(...)`, а затем в `$this->outerParams`.
 
 ```php
-// /bitrix/modules/my.module/updaters/updater_20250101.php
-if ($updater->CanUpdateDatabase())
+public function execute(array &$option): bool
 {
-    \Bitrix\Main\Update\Stepper::bindClass(
-        \MyVendor\MyModule\Update\DataMigrationStepper::class,
-        'my.module'
-    );
+    [$tenantId, $mode] = $this->getOuterParams() + [0, 'default'];
+
+    // ...
 }
 ```
 
----
+`execAgent()` в текущем core:
+- поднимает состояние из `Option::get("main.stepper.<moduleId>", $className)`;
+- вызывает `execute($option)`;
+- при `CONTINUE_EXECUTION` сохраняет состояние и возвращает следующую строку агента;
+- при `FINISH_EXECUTION` удаляет состояние через `Option::delete(...)` и возвращает пустую строку.
 
-## Метод bind() (альтернативный shortcut)
+Если шаг работал дольше `thresholdTime` (по умолчанию `20.0`), ядро увеличивает период следующего запуска через глобальный `$pPERIOD`.
 
-Если реализуешь статический `bind()` в своём классе — удобнее:
+## Прогресс
 
-```php
-class DataMigrationStepper extends Stepper
-{
-    protected static $moduleId = 'my.module';
-
-    public static function bind(array $initialParams = []): void
-    {
-        static::bindClass(static::class, static::$moduleId, array_merge(
-            ['lastId' => 0, 'steps' => 0, 'count' => 0],
-            $initialParams
-        ));
-    }
-
-    public function execute(array &$option): bool
-    {
-        // ...
-    }
-}
-
-// В updater-файле:
-\MyVendor\MyModule\Update\DataMigrationStepper::bind();
-```
-
----
-
-## Прогресс и состояние
-
-Stepper хранит состояние через `Config\Option` в категории `"main.stepper.{$moduleId}"`:
+Реальный ключ хранения:
 
 ```php
 use Bitrix\Main\Config\Option;
 
-// Получить текущий прогресс вручную
-$option = Option::get('main.stepper.my.module', DataMigrationStepper::class);
-if ($option !== '') {
-    $state = unserialize($option, ['allowed_classes' => false]);
-    // ['lastId' => 500, 'steps' => 500, 'count' => 500, 'title' => '...']
-}
-
-// Сбросить/удалить задачу вручную
-Option::delete('main.stepper.my.module', ['name' => DataMigrationStepper::class]);
-```
-
----
-
-## CLI-команды Bitrix (Symfony Console)
-
-Bitrix поставляется с CLI через Symfony Console. Entrypoint: `php bitrix/bin/console`.
-
-### Доступные группы команд
-
-```bash
-# Обновление (запуск Stepper вручную)
-php bitrix/bin/console update
-
-# Генерация кода
-php bitrix/bin/console make:controller    # создать Controller
-php bitrix/bin/console make:table         # создать DataManager (таблицу)
-
-# ORM-аннотации
-php bitrix/bin/console orm:annotate       # сгенерировать PHPDoc-аннотации для ORM-классов
-```
-
-### Пример: make:table
-
-```bash
-php bitrix/bin/console make:table MyVendor\\MyModule\\MyNewTable
-```
-
-Генерирует файл `local/modules/my.module/lib/mynewdatatable.php` с заготовкой DataManager.
-
-### Пример: orm:annotate
-
-```bash
-php bitrix/bin/console orm:annotate --module=my.module
-```
-
-Добавляет `@property` PHPDoc к классам ORM, что улучшает подсказки в IDE.
-
-### Реализация собственной команды
-
-```php
-namespace MyVendor\MyModule\Cli;
-
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputArgument;
-
-class ImportCommand extends Command
+$raw = Option::get('main.stepper.vendor.module', DataFixStepper::class);
+if ($raw !== '')
 {
-    protected static $defaultName = 'my-module:import';
-
-    protected function configure(): void
-    {
-        $this->setDescription('Импорт данных из CSV')
-             ->addArgument('file', InputArgument::REQUIRED, 'Путь к CSV-файлу');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $file = $input->getArgument('file');
-        $output->writeln("Импортируем: {$file}");
-        // ... логика импорта ...
-        return Command::SUCCESS;
-    }
+    $state = unserialize($raw, ['allowed_classes' => false]);
 }
 ```
 
-Регистрация команды в `local/modules/my.module/lib/cli/`:
+Пример полезных полей:
+- `steps`
+- `count`
+- `title`
+- `lastId`
+- `lastTime`
+- `totalTime`
+- `thresholdTime`
+- `delayCoefficient`
 
-```php
-// В include.php модуля или через ServiceLocator:
-// Команды регистрируются автоматически если находятся в правильном namespace
-// и модуль зарегистрирован как CLI-модуль
+Для UI ядро использует `Stepper::getHtml(...)` и `Stepper::checkRequest()`.
+
+## CLI в текущем core
+
+В этом проекте точка входа CLI подтверждена как:
+
+```bash
+php www/bitrix/bitrix.php <command>
 ```
 
----
+Не пиши в reference, что здесь гарантированно есть `bitrix/bin/console`: в текущем snapshot найден именно `www/bitrix/bitrix.php`.
+
+Подтверждённые команды из `main/lib/cli/command/*`:
+- `make:controller`
+- `make:component`
+- `make:tablet`
+- `orm:annotate`
+- `update:languages`
+- `update:modules`
+- `update:versions`
+- `messenger:consume-messages`
+- `dev:locator-codes`
+- `dev:module-skeleton`
+
+Примеры:
+
+```bash
+php www/bitrix/bitrix.php make:controller entity partner.module
+php www/bitrix/bitrix.php make:tablet my_table partner.module
+php www/bitrix/bitrix.php orm:annotate
+```
+
+`make:tablet`, а не `make:table`.
 
 ## Gotchas
 
-- **`THRESHOLD_TIME = 20.0`**: итерация прерывается после 20 секунд. Размер батча должен укладываться в это время с запасом.
-- **`bindClass()` регистрирует агент**: если вызвать дважды — создадутся два агента для одного класса. Проверяй наличие перед привязкой или используй `Option::get()`.
-- **`$option` передаётся по ссылке**: изменения в `execute()` автоматически сохраняются между итерациями.
-- **Stepper не работает без `$moduleId`**: состояние хранится в опциях модуля. Если модуль не установлен — агент не будет запускаться.
-- **Не изменяй структуру таблиц в Stepper**: класс предназначен только для обновления данных, не DDL. Для DDL используй `$updater->addTablesFromFile()`.
-- **CLI `orm:annotate`**: требует установленных модулей. Запускать из корня сайта с правильными настройками в `bitrix/.settings.php`.
-- **`DELAY_COEFFICIENT = 0.5`**: реальный порог — `THRESHOLD_TIME * DELAY_COEFFICIENT = 10с`. Запас на сохранение состояния.
+- Не передавай массив третьим аргументом в `bindClass()`: это `delay`, а не `withArguments`.
+- Не описывай `Stepper` как инструмент для изменения схемы БД. В самом core написано обратное.
+- Если нужно передать сложные структуры, переопредели `makeArguments()` и аккуратно восстанавливай их в `getOuterParams()`.
+- `bind(0, ...)` и `bindClass(..., 0, ...)` могут запустить шаг немедленно через `execAgent()` до постановки агента.
+- CLI-команды нужно привязывать к реальному entrypoint проекта. В этом core это `www/bitrix/bitrix.php`.

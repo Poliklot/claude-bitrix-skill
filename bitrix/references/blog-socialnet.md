@@ -1,12 +1,14 @@
 # Bitrix Blog & Socialnet — справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с блогами, комментариями, рабочими группами, живой лентой, лайками или рейтингом.
+>
+> Audit note: в текущем проверенном core подтверждён модуль `blog`, но модуль `socialnet` в `www/bitrix/modules` не найден. В текущей фазе используй как активный маршрут только `CBlog*`-часть этого файла. Секции `CSocNet*`, живая лента и связанные socialnet-сценарии считай условными до появления модуля.
 
 ## Содержание
 - CBlogPost — создание/получение/удаление постов
 - CBlogComment — комментарии
 - CBlogUser — блог-пользователь
-- CBlogTag — теги
+- CBlogCategory / CBlogPostCategory — теги блога
 - CSocNetGroup — рабочие группы, участники, подписки
 - CSocNetLogDestination — живая лента (лог активности)
 - CLike — лайки
@@ -32,24 +34,24 @@ $postId = $blogPost->Add([
     'DETAIL_TEXT'   => '<p>Текст поста</p>',
     'DATE_PUBLISH'  => date('d.m.Y H:i:s'),
     'PUBLISH_STATUS'=> 'P',        // P = published, D = draft
-    'ALLOW_COMMENTS'=> 'Y',
-    'ALLOW_TRACKBACK'=> 'N',
+    'ENABLE_COMMENTS'=> 'Y',
+    'ENABLE_TRACKBACK'=> 'N',
     'MICRO'         => 'N',        // Y = микропост (без заголовка)
     'CATEGORY_ID'   => '',
-    'TAGS'          => 'php, bitrix, d7',
+    'KEYWORDS'      => 'php, bitrix, d7',
     'UF_BLOG_POST_FILE' => [],     // прикреплённые файлы (UF-поля)
 ]);
 
 if (!$postId) {
-    $exception = $blogPost->getLastError();
-    // $exception — строка с ошибкой
+    global $APPLICATION;
+    $exception = $APPLICATION->GetException();
+    $error = $exception ? $exception->GetString() : 'Unknown error';
 }
 
 // Получить пост по ID
-$postRes = CBlogPost::GetByID($postId);
-$post = $postRes->Fetch();
+$post = CBlogPost::GetByID($postId);
 // Поля: ID, BLOG_ID, AUTHOR_ID, TITLE, DETAIL_TEXT, DATE_PUBLISH,
-//        PUBLISH_STATUS, VIEWS, SHARE_DEST, ALLOW_COMMENTS, TAGS, ...
+//        PUBLISH_STATUS, VIEWS, NUM_COMMENTS, ENABLE_COMMENTS, ENABLE_TRACKBACK, KEYWORDS, CATEGORY_ID, ...
 
 // Получить список постов
 $postList = CBlogPost::GetList(
@@ -112,8 +114,9 @@ while ($comm = $commRes->Fetch()) { /* ... */ }
 // Удалить комментарий
 CBlogComment::Delete($commentId);
 
-// Получить количество комментариев поста
-$cnt = CBlogPost::GetCommentsCount($postId); // int
+// Количество комментариев бери из поста
+$post = CBlogPost::GetByID($postId);
+$cnt = (int)($post['NUM_COMMENTS'] ?? 0);
 ```
 
 ---
@@ -124,50 +127,65 @@ $cnt = CBlogPost::GetCommentsCount($postId); // int
 Loader::includeModule('blog');
 
 // Получить блог-пользователя по USER_ID
-$blogUserRes = CBlogUser::GetList(
-    [],
-    ['USER_ID' => $userId],
-    false, false,
-    ['ID', 'USER_ID', 'BLOG_COUNT', 'ALIAS']
-);
-$blogUser = $blogUserRes->Fetch();
+$blogUser = CBlogUser::GetByID($userId, BLOG_BY_USER_ID);
 
 // Создать блог-пользователя (если не существует)
 if (!$blogUser) {
-    $bu = new CBlogUser();
-    $blogUserId = $bu->Add([
+    $blogUserId = CBlogUser::Add([
         'USER_ID' => $userId,
         'ALIAS'   => 'user_' . $userId,
     ]);
+} else {
+    $blogUserId = (int)$blogUser['ID'];
 }
 
-// Получить или создать автоматически (используй при добавлении поста)
-$blogUserId = CBlogUser::GetUserID($userId, SITE_ID, true);
-// третий параметр true = создать если не существует
+// В текущем core подтверждён именно такой явный паттерн:
+// GetByID(..., BLOG_BY_USER_ID) -> при отсутствии CBlogUser::Add(...)
 ```
 
 ---
 
-## CBlogTag — теги
+## CBlogCategory / CBlogPostCategory — теги блога
 
 ```php
 Loader::includeModule('blog');
 
-// Теги сохраняются строкой в TAGS поля CBlogPost
-// Получить популярные теги блога
-$tagRes = CBlogTag::GetList(
-    ['POSTS_CNT' => 'DESC'],
+// Получить список тегов (категорий) блога
+$tagRes = CBlogCategory::GetList(
+    ['NAME' => 'ASC'],
     ['BLOG_ID' => 5],
     false,
     ['nTopCount' => 30],
-    ['ID', 'NAME', 'BLOG_ID', 'POSTS_CNT']
+    ['ID', 'NAME', 'BLOG_ID']
 );
 while ($tag = $tagRes->Fetch()) {
-    echo $tag['NAME'] . ' (' . $tag['POSTS_CNT'] . ')';
+    echo $tag['NAME'];
 }
 
-// Теги поста — вытягиваются через поле TAGS в CBlogPost::GetByID
-// строка, разделённая запятыми: "php, bitrix, cms"
+// Создать новый тег-категорию
+$tagId = CBlogCategory::Add([
+    'BLOG_ID' => 5,
+    'NAME'    => 'bitrix',
+]);
+
+// Привязать тег к посту
+CBlogPostCategory::Add([
+    'BLOG_ID'     => 5,
+    'POST_ID'     => $postId,
+    'CATEGORY_ID' => $tagId,
+]);
+
+// Получить теги конкретного поста
+$postTags = CBlogPostCategory::GetList(
+    ['NAME' => 'ASC'],
+    ['POST_ID' => $postId, 'BLOG_ID' => 5],
+    false,
+    false,
+    ['CATEGORY_ID', 'NAME']
+);
+while ($tag = $postTags->Fetch()) {
+    echo $tag['NAME'];
+}
 ```
 
 ---
@@ -453,11 +471,11 @@ EventManager::getInstance()->registerEventHandler(
 
 ## Gotchas
 
-- **`Loader::includeModule('blog')`** обязателен перед любым использованием `CBlogPost`, `CBlogComment`, `CBlogUser`, `CBlogTag`. Без него классы не будут определены.
-- **`Loader::includeModule('socialnet')`** обязателен для `CSocNetGroup`, `CSocNetLog`, `CLike`, `CRatings`. `CLike` и `CRatings` живут именно в модуле `socialnet`, не `blog`.
+- **`Loader::includeModule('blog')`** обязателен перед любым использованием `CBlogPost`, `CBlogComment`, `CBlogUser`, `CBlogCategory`, `CBlogPostCategory`. Без него классы не будут определены.
+- **`Loader::includeModule('socialnet')`** обязателен для `CSocNetGroup`, `CSocNetLog`, `CLike`, `CRatings`, но в текущей фазе эти части reference считай отложенными, потому что модуля `socialnet` в проверенном core нет.
 - **D7-переноса почти нет**: `CBlogPost`, `CBlogComment` и весь Blog API — legacy, D7-обёрток нет. `CSocNetGroup` тоже legacy. Используй как есть.
-- **`CBlogUser::GetUserID($userId, SITE_ID, true)`** — третий параметр `true` создаёт блог-пользователя автоматически. Без этого `CBlogPost::Add()` может упасть с ошибкой "неверный автор".
-- **Теги в `CBlogPost`** сохраняются строкой `'TAGS' => 'php, bitrix'`. После `Add/Update` они парсятся и записываются в `b_blog_tag` автоматически ядром.
+- **Автосоздание `CBlogUser` helper-ом в текущем core не подтверждено**: используй явный паттерн `CBlogUser::GetByID(..., BLOG_BY_USER_ID)` и затем `CBlogUser::Add(...)`.
+- **Теги блога в текущем core** хранятся через `CBlogCategory` + связь `CBlogPostCategory`, а у поста видны как `CATEGORY_ID`. Не опирайся на несуществующий `CBlogTag`.
 - **`PUBLISH_STATUS`**: `'P'` = опубликован, `'D'` = черновик. Только статус `'P'` виден публично.
 - **`CSocNetLog::Add()`** + **`CSocNetLogDestination::Add()`** нужно вызывать вместе — запись лога без назначения получателей не попадёт ни в чью ленту.
 - **`CLike::CheckForLike()`** возвращает `bool` — не путай с `GetCount()` (возвращает `int`).

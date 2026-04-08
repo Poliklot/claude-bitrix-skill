@@ -2,7 +2,7 @@
 
 ## CFile — работа с файлами Bitrix
 
-Все файлы в Bitrix хранятся в таблице `b_file`. Физически — в `upload/`. `CFile` — единственный корректный API для сохранения, получения и изменения файлов.
+По умолчанию Bitrix хранит метаданные файлов в `b_file`, а физические файлы — в `upload/`. Но в текущем core есть события `OnFileSave` и `OnMakeFileArray`, поэтому внешнее хранилище тоже возможно. `CFile` остаётся корректной точкой входа для сохранения, получения и изменения файлов.
 
 ---
 
@@ -18,7 +18,7 @@ $arFile = [
     'error'    => 0,
 ];
 
-$fileId = CFile::SaveFile($arFile, 'my_module');   // возвращает int (ID в b_file) или false
+$fileId = CFile::SaveFile($arFile, 'my_module');   // обычно int ID, но при delete-only сценарии может вернуть строку "NULL"
 if (!$fileId) {
     // ошибка сохранения
 }
@@ -81,7 +81,7 @@ if ($arFile) {
 ]
 ```
 
-> URL-загрузка безопасна — ядро запрещает `php://`, `phar://`, приватные IP (localhost, 127.x, 192.168.x).
+> Для `http/https` ядро создаёт `HttpClient`, вызывает `setPrivateIp(false)` и блокирует приватные IP. Для `php://` и `phar://` действует отдельный запрет, кроме `php://input`.
 
 ---
 

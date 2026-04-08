@@ -6,6 +6,8 @@ Loader::includeModule('sale');
 Loader::includeModule('catalog'); // для работы с товарами
 ```
 
+> Audit note: в текущем проверенном core модули `sale` и `catalog` в `www/bitrix/modules` не найдены. Этот файл сейчас отложен до установки магазинного core и не должен быть активным маршрутом в текущей фазе проекта.
+
 ## Архитектура Sale D7
 
 ```

@@ -1,5 +1,7 @@
 # SEO, Кеш, Индексация, Доступ
 
+> Audit note: ниже сверено с текущим core `main` + `seo`. В этой версии подтверждены `Bitrix\Seo\Sitemap\Job::findJob/addJob/markToRegenerate`, `Bitrix\Seo\RobotsFile`, `Bitrix\Seo\Sitemap\Internals\SitemapTable`, а для composite-сброса подтверждён `Bitrix\Main\Composite\Page`, не `Engine::clearByUrl()/clearAll()`.
+
 ## 1. Сброс кеша
 
 ### Виды кеша в Bitrix
@@ -8,7 +10,7 @@
 |-----|-------------|-------|
 | Файловый кеш компонентов | `/bitrix/cache/` | `\Bitrix\Main\Data\Cache` |
 | Managed cache (ORM, таблицы) | `/bitrix/managed_cache/` | `\Bitrix\Main\Data\ManagedCache` |
-| Статический HTML (composite) | `/bitrix/html_pages/` | `\Bitrix\Main\Composite\Engine` |
+| Статический HTML (composite) | `/bitrix/html_pages/` | `\Bitrix\Main\Composite\Page` |
 | HTML-кеш страниц | `/bitrix/html_pages/` | управляется ядром |
 
 ### Сброс файлового кеша (D7)
@@ -51,15 +53,14 @@ $managedCache->cleanAll();                          // весь managed cache
 Composite cache хранит финальный HTML в `/bitrix/html_pages/`. Сбрасывается:
 
 ```php
-// Через менеджер composite engine (D7)
-use Bitrix\Main\Composite\Engine;
+use Bitrix\Main\Composite\Page;
 
-// Отметить страницы как устаревшие по URL-паттерну
-Engine::getInstance()->clearByUrl('/catalog/');      // все URL начиная с /catalog/
-Engine::getInstance()->clearByUrl('/catalog/item-slug/');
+// Полный сброс HTML-кеша всего сайта
+$page = Page::getInstance();
+$page->deleteAll();
 
-// Полный сброс HTML-кеша всего сайта — ДОРОГАЯ операция
-Engine::getInstance()->clearAll();
+// Точечный сброс — через конкретный объект Page, когда известен cache key/URI.
+// В текущем core НЕ подтверждены методы Engine::clearByUrl() / Engine::clearAll().
 ```
 
 Сброс из shell (CLI) или деплой-скрипта:
@@ -130,6 +131,8 @@ $APPLICATION->ShowHead(); // → <meta name="robots" content="noindex, nofollow"
 // Файл .section.php в директории /private/ или через код
 $APPLICATION->SetDirProperty('robots', 'noindex, nofollow', '/private/');
 ```
+
+Третий аргумент можно не передавать: тогда свойство применяется к текущей директории. Сам метод `SetDirProperty($propertyId, $value, $path = false)` в текущем core подтверждён.
 
 ### Через `.section.php` файл раздела
 
@@ -202,17 +205,25 @@ use Bitrix\Seo\Sitemap\Job;
 
 Loader::includeModule('seo');
 
-$job = Job::createBySitemap($sitemapId);
+$job = Job::findJob($sitemapId) ?: Job::addJob($sitemapId);
 
-// Запустить генерацию (многошаговый процесс через агентов/крон)
-$result = $job->run();
+if (!$job) {
+    throw new \RuntimeException('Не удалось зарегистрировать job для sitemap');
+}
 
-// Проверить статус
-$status = $job->getStatus();
+// Проверить статус текущей job
+$jobData = $job->getData();
+$status = $jobData['status'];
 // Job::STATUS_REGISTER — ожидает запуска
 // Job::STATUS_PROCESS  — идёт генерация
 // Job::STATUS_FINISH   — готово
 // Job::STATUS_ERROR    — ошибка
+
+// Выполнить один шаг генерации синхронно
+$result = $job->doStep();
+
+// Поставить sitemap на фоновую регенерацию через агент
+Job::markToRegenerate($sitemapId);
 ```
 
 ### Проверить существование sitemap.xml
@@ -430,11 +441,11 @@ LocalRedirect($backUrl);
 |--------|--------|
 | Сбросить кеш компонента | `Cache::cleanDir('/my_dir')` или `TaggedCache::clearByTag()` |
 | Сбросить кеш всего сайта | `Cache::clearCache(true)` |
-| Сбросить HTML-кеш | `Composite\Engine::clearByUrl()` / `clearAll()` |
+| Сбросить HTML-кеш | `Bitrix\Main\Composite\Page::getInstance()->deleteAll()` |
 | Скрыть страницу из поиска | `$APPLICATION->SetPageProperty('robots', 'noindex')` |
 | Скрыть раздел целиком | `.section.php` с `SetDirProperty` |
 | Добавить Sitemap запись | `SitemapTable::add(...)` |
-| Запустить генерацию XML | `Job::createBySitemap($id)->run()` |
+| Запустить генерацию XML | `Job::findJob()/addJob()` + `doStep()` или `markToRegenerate()` |
 | Управлять robots.txt | `new RobotsFile('s1')` + `addRule()` |
 | Защитить страницу auth | `$USER->IsAuthorized()` + `AuthForm()` |
 | Защитить раздел ФС | `.access.php` с массивом `$PERM` |

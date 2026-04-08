@@ -1,17 +1,21 @@
 # Пользователи (CUser / UserTable)
 
+> Reference для Bitrix-скилла. Загружай когда задача связана с `CUser`, `Bitrix\Main\UserTable`, текущим пользователем или пользовательскими UF-полями.
+>
+> Audit note: проверено по текущему core `main/classes/general/user.php`, `main/lib/user.php`, `main/lib/engine/currentuser.php`.
+
 ## Текущий пользователь
 
 ```php
 global $USER; // объект CUser, всегда доступен в контексте сайта
 
 // Основные проверки
-$USER->IsAuthorized()  // bool — авторизован ли
-$USER->IsAdmin()       // bool — системный администратор
-$USER->GetID()         // int — ID, 0 если не авторизован
-$USER->GetLogin()      // string — логин
-$USER->GetEmail()      // string — email
-$USER->GetFullName()   // string — "Имя Фамилия"
+$USER->IsAuthorized(); // bool — авторизован ли
+$USER->IsAdmin();      // bool — системный администратор
+$USER->GetID();        // int — ID, 0 если не авторизован
+$USER->GetLogin();     // string — логин
+$USER->GetEmail();     // string — email
+$USER->GetFullName();  // string — "Имя Фамилия"
 
 // Группы
 $groups = $USER->GetUserGroupArray(); // [1, 5, 8] — массив ID групп
@@ -186,8 +190,8 @@ $res = CUser::GetByID($userId);
 $user = $res->Fetch();
 // $user['UF_DEPARTMENT'], $user['UF_CUSTOM_FIELD']
 
-// Через UserTable — UF НЕ доступны напрямую в getList без специальных runtime-полей
-// Читать UF через CUserTypeManager:
+// Для сложных UF-сценариев safest-path:
+// читать через CUser::GetByID() или USER_FIELD_MANAGER
 global $USER_FIELD_MANAGER;
 $ufValues = $USER_FIELD_MANAGER->GetUserFields('USER', $userId, LANGUAGE_ID);
 // $ufValues['UF_MY_FIELD']['VALUE']
@@ -339,7 +343,7 @@ $em->addEventHandler('main', 'OnUserLoginComplete', function(\Bitrix\Main\Event 
 
 - `GROUP_ID` в `CUser::Add` **заменяет** все группы. Не передавай если не хочешь сбросить группы
 - `CUser::SetUserGroup` тоже **заменяет** все группы — сначала считай текущие
-- UF-поля недоступны через `UserTable::getList` — используй `CUser::GetByID` или `USER_FIELD_MANAGER->GetUserFields`
+- Для произвольных UF-полей safest-path — `CUser::GetByID` или `USER_FIELD_MANAGER->GetUserFields`. Не обещай вслепую одинаковое поведение всех UF через `UserTable::getList`
 - `$USER->IsAdmin()` — только системный администратор (группа 1). Для проверки других групп используй `GetUserGroupArray()`
 - `CUser::GetByID` возвращает db_result, надо вызвать `->Fetch()`
 - Пароль в `Add/Update` всегда открытый — ядро само хеширует через `Password::hash()`

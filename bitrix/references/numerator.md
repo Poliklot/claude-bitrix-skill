@@ -1,266 +1,230 @@
 # Bitrix Numerator — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с нумерацией документов: `Bitrix\Main\Numerator\Numerator`, `NumberGeneratorFactory`, шаблонами нумерации (префикс, дата, порядковый номер), таблицами `NumeratorTable`, `NumeratorSequenceTable`.
+> Reference для Bitrix-скилла. Загружай когда задача связана с нумерацией документов через `Bitrix\Main\Numerator\Numerator`, `NumberGeneratorFactory`, `NumeratorTable` и `NumeratorSequenceTable`.
 
-## Содержание
-- Архитектура Numerator
-- Создание и настройка нумератора
-- Шаблон нумерации (теги)
-- Генерация номера
-- NumeratorTable: хранение конфигурации
-- NumeratorSequenceTable: последовательности
-- Интерфейсы: UserConfigurable, DynamicConfigurable, Sequenceable
-- Gotchas
+## Audit note
 
----
+Проверено по текущему core:
+- `www/bitrix/modules/main/lib/numerator/numerator.php`
+- `www/bitrix/modules/main/lib/numerator/numbergeneratorfactory.php`
+- `www/bitrix/modules/main/lib/numerator/model/numerator.php`
+- `www/bitrix/modules/main/lib/numerator/model/numeratorsequence.php`
+- `www/bitrix/modules/main/lib/numerator/generator/*`
 
-## Архитектура
+Это реальный модульный слой текущего `main`, а не внешняя библиотека.
 
-`Numerator` — генератор уникальных номеров для документов (заказы, счета, акты).
+## Что есть в этом core
 
-**Ключевые компоненты:**
-- `Numerator` — главный класс, создаётся через `Numerator::create()`
-- `NumberGeneratorFactory` — фабрика генераторов (DATE, SEQUENCE, RANDOM и др.)
-- `NumeratorTable` — хранит конфигурацию нумераторов
-- `NumeratorSequenceTable` — хранит текущие значения последовательностей
+Основные классы:
+- `Bitrix\Main\Numerator\Numerator`
+- `Bitrix\Main\Numerator\NumberGeneratorFactory`
+- `Bitrix\Main\Numerator\Model\NumeratorTable`
+- `Bitrix\Main\Numerator\Model\NumeratorSequenceTable`
 
-**Шаблон нумерации** — строка с тегами, например `{PREFIX}{YEAR}{MONTH}{NUMBER}`.
+Встроенные генераторы:
+- `SequentNumberGenerator`
+- `DateNumberGenerator`
+- `RandomNumberGenerator`
+- `PrefixNumberGenerator`
 
----
+В `NumberGeneratorFactory` генераторы собираются из core и могут расширяться событием `main:onNumberGeneratorsClassesCollect`.
 
-## Создание нумератора
+## Важное отличие от старых описаний
+
+В текущем core:
+- следующий номер получают через `Numerator::getNext(...)`, а не `getNumber()`;
+- preview идёт через `previewNextNumber(...)`;
+- конфиг хранится в поле `SETTINGS`, а не `CONFIG`;
+- таблица нумераторов называется `b_numerator`, а последовательностей `b_numerator_sequence`;
+- есть `load($id, $source = null)` и `loadByCode($code, $source = null)`.
+
+## Как создавать и сохранять
+
+У `Numerator::create()` конструктор пустой. Публичных chain-методов `setName()/setType()/setTemplate()` в текущем core нет. Рабочий путь — подготовить конфиг и вызвать `setConfig(...)`, затем `save()`.
 
 ```php
+use Bitrix\Main\Numerator\Generator\SequentNumberGenerator;
 use Bitrix\Main\Numerator\Numerator;
-use Bitrix\Main\Numerator\Model\NumeratorTable;
 
-// Создать нумератор с шаблоном
-$numerator = Numerator::create()
-    ->setType('MY_MODULE_ORDER')              // тип документа (уникальный в модуле)
-    ->setTemplate('{PREFIX}-{YEAR}{MONTH}-{NUMBER}')  // шаблон
-    ->setName('Нумератор заказов');
+$numerator = Numerator::create();
 
-// Сохранить в БД (получить/создать ID)
-$result = NumeratorTable::add([
-    'NAME'     => 'Нумератор заказов',
-    'TYPE'     => 'MY_MODULE_ORDER',
-    'TEMPLATE' => '{PREFIX}-{YEAR}{MONTH}-{NUMBER}',
-    'CONFIG'   => serialize([
-        'PREFIX' => ['value' => 'ORD'],
-        'NUMBER' => ['start' => 1, 'step' => 1, 'periodicReset' => 'MONTHLY'],
-    ]),
+$result = $numerator->setConfig([
+    Numerator::getType() => [
+        'name' => 'Нумерация заказов',
+        'type' => Numerator::NUMERATOR_DEFAULT_TYPE,
+        'template' => '{PREFIX}-{YEAR}{MONTH}-{NUMBER}',
+        'code' => 'orders',
+    ],
+    SequentNumberGenerator::getType() => [
+        'start' => 1,
+        'step' => 1,
+        'length' => 6,
+        'padString' => '0',
+        'periodicBy' => SequentNumberGenerator::MONTH,
+    ],
 ]);
-$numeratorId = $result->getId();
-```
 
----
-
-## Загрузка нумератора из БД
-
-```php
-use Bitrix\Main\Numerator\Numerator;
-use Bitrix\Main\Numerator\Model\NumeratorTable;
-
-// По ID
-$row = NumeratorTable::getById($numeratorId)->fetch();
-if ($row) {
-    $numerator = Numerator::create()
-        ->setId($row['ID'])
-        ->setName($row['NAME'])
-        ->setType($row['TYPE'])
-        ->setTemplate($row['TEMPLATE']);
+if (!$result->isSuccess())
+{
+    throw new \RuntimeException(implode('; ', $result->getErrorMessages()));
 }
 
-// Или через getById самого класса
-$numerator = Numerator::load($numeratorId); // если метод реализован в вашей версии
+$saveResult = $numerator->save();
+if (!$saveResult->isSuccess())
+{
+    throw new \RuntimeException(implode('; ', $saveResult->getErrorMessages()));
+}
+
+$numeratorId = (int)$saveResult->getId();
 ```
 
----
+## Загрузка
+
+```php
+use Bitrix\Main\Numerator\Numerator;
+
+$numerator = Numerator::load($numeratorId);
+$byCode = Numerator::loadByCode('orders');
+```
+
+Если нумератор не найден или конфиг невалиден, вернётся `null`.
+
+Второй аргумент `load(..., $source)` можно использовать как:
+- dynamic config для `DynamicConfigurable` генераторов;
+- hash-source для последовательности, если объект реализует `Hashable`.
 
 ## Генерация номера
 
 ```php
-use Bitrix\Main\Numerator\Numerator;
-
-// Простой вариант — получить следующий номер
-$numerator = /* загруженный нумератор */;
-$number = $numerator->getNumber(); // строка: "ORD-202503-0042"
-
-// С параметрами (для динамических тегов)
-$number = $numerator->getNumber([
-    'userId'    => $USER->GetID(),
-    'createdAt' => new \Bitrix\Main\Type\DateTime(),
-]);
-```
-
----
-
-## Теги шаблона нумерации
-
-| Тег | Описание | Пример |
-|-----|----------|--------|
-| `{PREFIX}` | Произвольный префикс | `ORD` |
-| `{YEAR}` | Год (4 цифры) | `2025` |
-| `{YEAR2}` | Год (2 цифры) | `25` |
-| `{MONTH}` | Месяц (2 цифры) | `03` |
-| `{DAY}` | День (2 цифры) | `17` |
-| `{HOUR}` | Час (2 цифры) | `14` |
-| `{NUMBER}` | Порядковый номер (с настройками) | `0042` |
-| `{RANDOM}` | Случайный номер | `8f4a2c` |
-
-**Пример составного шаблона:**
-```
-{PREFIX}-{YEAR}{MONTH}-{NUMBER}  →  ORD-202503-0042
-ACT/{YEAR}/{NUMBER}               →  ACT/2025/0001
-INV-{YEAR2}{MONTH}{DAY}-{RANDOM}  →  INV-250317-a3f2
-```
-
----
-
-## NumeratorTable: работа с хранилищем
-
-```php
-use Bitrix\Main\Numerator\Model\NumeratorTable;
-
-// Получить все нумераторы типа
-$list = NumeratorTable::getList([
-    'filter' => ['=TYPE' => 'MY_MODULE_ORDER'],
-    'select' => ['ID', 'NAME', 'TEMPLATE', 'CONFIG'],
-])->fetchAll();
-
-// Обновить шаблон
-NumeratorTable::update($numeratorId, [
-    'TEMPLATE' => '{PREFIX}/{YEAR}-{NUMBER}',
-]);
-
-// Удалить нумератор (осторожно!)
-NumeratorTable::delete($numeratorId);
-```
-
----
-
-## NumeratorSequenceTable: управление последовательностью
-
-```php
-use Bitrix\Main\Numerator\Model\NumeratorSequenceTable;
-
-// Посмотреть текущее значение последовательности
-$seq = NumeratorSequenceTable::getList([
-    'filter' => [
-        '=NUMERATOR_ID' => $numeratorId,
-        '=PERIOD'       => '2025-03', // формат зависит от настройки periodicReset
-    ],
-])->fetch();
-
-// Сбросить последовательность вручную (например, в начале года)
-if ($seq) {
-    NumeratorSequenceTable::update($seq['ID'], ['VALUE' => 0]);
-}
-```
-
----
-
-## Интерфейсы генераторов
-
-Встроенные генераторы реализуют различные интерфейсы:
-
-```php
-use Bitrix\Main\Numerator\Generator\Contract\UserConfigurable;
-use Bitrix\Main\Numerator\Generator\Contract\DynamicConfigurable;
-use Bitrix\Main\Numerator\Generator\Contract\Sequenceable;
-
-// UserConfigurable — имеет настройки для пользователя (PREFIX, START и т.д.)
-// DynamicConfigurable — настройки зависят от контекста (дата, userId)
-// Sequenceable — поддерживает последовательный счётчик с периодическим сбросом
-```
-
-**Периодический сброс счётчика (periodicReset для NUMBER):**
-
-| Значение | Описание |
-|----------|----------|
-| `NEVER` | Никогда не сбрасывать |
-| `YEARLY` | Сброс в начале каждого года |
-| `MONTHLY` | Сброс в начале каждого месяца |
-| `DAILY` | Сброс каждый день |
-
----
-
-## Полный пример: нумерация заказов в модуле
-
-```php
-namespace MyVendor\MyModule\Service;
-
-use Bitrix\Main\Numerator\Numerator;
-use Bitrix\Main\Numerator\Model\NumeratorTable;
-use Bitrix\Main\Config\Option;
-
-class OrderNumeratorService
+if (!$numerator)
 {
-    private const MODULE_ID = 'my.module';
-    private const OPTION_KEY = 'order_numerator_id';
-
-    public static function getOrCreateNumerator(): ?Numerator
-    {
-        $numeratorId = (int)Option::get(self::MODULE_ID, self::OPTION_KEY, 0);
-
-        if ($numeratorId <= 0) {
-            $result = NumeratorTable::add([
-                'NAME'     => 'Нумерация заказов',
-                'TYPE'     => 'MY_MODULE_ORDER',
-                'TEMPLATE' => 'ORD-{YEAR}{MONTH}-{NUMBER}',
-                'CONFIG'   => serialize([
-                    'NUMBER' => [
-                        'start'         => 1,
-                        'step'          => 1,
-                        'periodicReset' => 'YEARLY',
-                        'padding'       => 4, // ведущие нули: 0042
-                    ],
-                ]),
-            ]);
-
-            if (!$result->isSuccess()) {
-                return null;
-            }
-
-            $numeratorId = $result->getId();
-            Option::set(self::MODULE_ID, self::OPTION_KEY, $numeratorId);
-        }
-
-        // Загрузить нумератор
-        $row = NumeratorTable::getById($numeratorId)->fetch();
-        if (!$row) {
-            return null;
-        }
-
-        return Numerator::create()
-            ->setId($row['ID'])
-            ->setName($row['NAME'])
-            ->setType($row['TYPE'])
-            ->setTemplate($row['TEMPLATE']);
-    }
-
-    public static function generateNumber(): string
-    {
-        $numerator = static::getOrCreateNumerator();
-        if ($numerator === null) {
-            return 'ORD-' . date('YmdHis'); // fallback
-        }
-
-        return $numerator->getNumber();
-    }
+    throw new \RuntimeException('Numerator not found');
 }
 
-// Использование:
-$orderNumber = OrderNumeratorService::generateNumber(); // "ORD-202503-0001"
+$next = $numerator->getNext();
+$preview = $numerator->previewNextNumber();
 ```
 
----
+Для последовательного генератора:
+- `getNext()` реально увеличивает счётчик;
+- `previewNextNumber()` только считает следующий видимый номер;
+- `previewNextSequentialNumber()` возвращает только следующее числовое значение счётчика;
+- `setNextSequentialNumber(...)` позволяет принудительно сдвинуть последовательность.
+
+## Хеш и независимые последовательности
+
+Последовательность в текущем core может вестись независимо по хешу.
+
+```php
+$nextForCompany42 = $numerator->getNext('COMPANY_42');
+$nextForCompany64 = $numerator->getNext('COMPANY_64');
+```
+
+`NumeratorSequenceTable` хранит ключ как:
+- `KEY = md5($numberHash)`
+- `TEXT_KEY = mb_substr($numberHash, 0, 50)`
+
+## Таблицы
+
+### `NumeratorTable`
+
+`Bitrix\Main\Numerator\Model\NumeratorTable` работает с таблицей `b_numerator`.
+
+Реальные поля:
+- `ID`
+- `NAME`
+- `TEMPLATE`
+- `SETTINGS`
+- `TYPE`
+- `CREATED_AT`
+- `CREATED_BY`
+- `UPDATED_AT`
+- `UPDATED_BY`
+- `CODE`
+
+`CODE`:
+- nullable;
+- должен быть уникальным;
+- если передан, обязан быть непустой строкой.
+
+Полезные методы:
+- `getList(...)`
+- `getById(...)`
+- `getNumeratorList($type, $sort)`
+- `loadSettings($numeratorId)`
+- `saveNumerator($numeratorId, $fields)`
+- `getIdByCode($code)`
+
+### `NumeratorSequenceTable`
+
+`Bitrix\Main\Numerator\Model\NumeratorSequenceTable` работает с таблицей `b_numerator_sequence`.
+
+Реальные поля:
+- `NUMERATOR_ID`
+- `KEY`
+- `TEXT_KEY`
+- `NEXT_NUMBER`
+- `LAST_INVOCATION_TIME`
+
+Полезные методы:
+- `getSettings($numeratorId, $numberHash)`
+- `setSettings($numeratorId, $numberHash, $defaultNumber, $lastInvocationTime)`
+- `updateSettings($numeratorId, $numberHash, $fields, $whereNextNumber = null)`
+- `deleteByNumeratorId($id)`
+
+## Периодичность последовательности
+
+В `SequentNumberGenerator` подтверждены значения:
+- `SequentNumberGenerator::DAY`
+- `SequentNumberGenerator::MONTH`
+- `SequentNumberGenerator::YEAR`
+- пустое значение для режима без периодического сброса
+
+Не подменяй их псевдо-значениями вроде `DAILY`, `MONTHLY`, `YEARLY`: в этом core используются именно `day`, `month`, `year`.
+
+## Шаблон и встроенные слова
+
+Конкретный набор слов зависит от подключённых генераторов, но в текущем core подтверждены:
+- `{NUMBER}`
+- `{DAY}`
+- `{MONTH}`
+- `{YEAR}`
+- `{RANDOM}`
+- `{PREFIX}`
+
+Для получения доступных слов безопаснее использовать:
+
+```php
+use Bitrix\Main\Numerator\Numerator;
+
+$words = Numerator::getTemplateWordsForType();
+$settings = Numerator::getSettingsFields(Numerator::NUMERATOR_DEFAULT_TYPE);
+```
+
+## Обновление и удаление
+
+```php
+use Bitrix\Main\Numerator\Numerator;
+
+$updateResult = Numerator::update($numeratorId, [
+    Numerator::getType() => [
+        'idFromDb' => $numeratorId,
+        'name' => 'Обновлённый нумератор',
+        'type' => Numerator::NUMERATOR_DEFAULT_TYPE,
+        'template' => '{PREFIX}-{YEAR}-{NUMBER}',
+        'code' => 'orders',
+    ],
+]);
+
+$deleteResult = Numerator::delete($numeratorId);
+```
+
+`delete($id)` дополнительно чистит связанные записи последовательностей через `NumeratorSequenceTable::deleteByNumeratorId(...)`.
 
 ## Gotchas
 
-- **`getNumber()` атомарен**: внутри используется `SELECT ... FOR UPDATE` или аналог для защиты от дублирования при параллельных запросах.
-- **CONFIG сериализован**: поле `CONFIG` в `NumeratorTable` хранит `serialize()` массива. При чтении и записи не забывай `serialize()`/`unserialize()`.
-- **Тип (TYPE) уникален**: один тип документа — один нумератор. При попытке создать второй с тем же TYPE — поведение зависит от реализации (может создать второй или вернуть ошибку).
-- **Периодический сброс**: `NumeratorSequenceTable` хранит одну строку на период (год/месяц). При сбросе в начале года создаётся новая строка — старые данные сохраняются.
-- **`Numerator::create()` без сохранения**: `create()` создаёт объект в памяти. `NumeratorTable::add()` — сохраняет в БД. Это разные операции.
-- **Нет автоматической транзакции**: если обновление последовательности упало на середине — номер может быть пропущен. Это нормально для нумераторов (не используй для финансовых документов без дополнительной проверки).
+- Не используй `getNumber()`: в текущем core рабочий метод называется `getNext()`.
+- Не пиши в примерах поле `CONFIG`: в таблице хранится `SETTINGS`, причём через JSON.
+- Не строй конфиг через несуществующие public chain-методы `setType()/setTemplate()/setName()`.
+- Не подменяй периодичность значениями `YEARLY`/`MONTHLY`/`DAILY`: ядро использует `year`/`month`/`day`.
+- Если нужен preview без инкремента, используй `previewNextNumber()`, а не `getNext()`.

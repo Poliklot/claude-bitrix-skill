@@ -1,446 +1,389 @@
 # Bitrix Subscribe — справочник
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с email-рассылками, управлением подписками, шаблонами писем или отправкой рассылок через модуль subscribe.
+> Reference для Bitrix-скилла. Загружай когда задача связана с рубриками рассылок, подписками, posting-рассылками и auto-template workflow модуля `subscribe`.
+>
+> Audit note: проверено по текущему core `subscribe/classes/general/*`, `subscribe/install/components/*`.
 
 ## Содержание
-- Архитектура модуля subscribe
-- CSender — отправители (FROM email)
-- CSubscribe — подписки (рубрики)
-- CSubscription — подписчики
-- CPosting — рассылки (письма)
-- CSending — отправка
-- CPostingTemplate — шаблоны писем
-- Подписать/отписать пользователя
-- Проверить подписку
-- Создать рассылку и отправить
+- Архитектура модуля `subscribe`
+- `CRubric`
+- `CSubscription`
+- Подтверждение / отписка
+- `CPosting`
+- `CPostingTemplate`
 - Gotchas
 
 ---
 
-## Архитектура
+## Архитектура модуля `subscribe`
 
-**Иерархия модуля subscribe:**
-```
-CSender (отправитель FROM)
-  └── CSubscribe (рубрика/список рассылки)
-        ├── CSubscription (подписчик ↔ рубрика)
-        └── CPosting (конкретное письмо-рассылка)
-              └── CSending (процесс отправки)
+В текущем core подтверждены следующие основные классы:
+
+```text
+CRubric
+  └── рубрика / список рассылки
+
+CSubscription
+  └── подписка: email, user_id, confirmed, active, набор RUB_ID
+
+CPosting
+  └── конкретная рассылка / письмо / очередь отправки
+
+CPostingTemplate
+  └── файловые шаблоны для auto-рубрик
 ```
 
-- **CSender** — email и имя отправителя (FROM).
-- **CSubscribe** — рубрика рассылки (категория). Пользователь подписывается на рубрики.
-- **CSubscription** — запись подписчика: email + привязка к рубрикам + статус подтверждения.
-- **CPosting** — конкретное письмо: тема, тело, список получателей.
-- **CSending** — процесс отправки письма (батчи, статус доставки).
-- **CPostingTemplate** — шаблоны HTML/текст для писем.
+Не подтверждены как core-API этого модуля:
+
+- `CSender`
+- `CSubscribe`
+- `CSending`
+
+Не опирайся на них в reference для текущего ядра.
 
 ---
 
-## CSender — отправители
+## `CRubric`
+
+`CRubric` управляет рубриками рассылок.
+
+### Получить список рубрик
 
 ```php
 use Bitrix\Main\Loader;
 
 Loader::includeModule('subscribe');
 
-// Получить список отправителей
-$senderRes = CSender::GetList(['NAME' => 'ASC'], []);
-while ($sender = $senderRes->Fetch()) {
-    // ID, NAME, EMAIL, ACTIVE
-}
-
-// Получить отправителя по ID
-$sender = CSender::GetByID($senderId);
-
-// Добавить отправителя
-$newSenderId = CSender::Add([
-    'SITE_ID' => SITE_ID,
-    'NAME'    => 'Название компании',
-    'EMAIL'   => 'noreply@example.com',
-    'ACTIVE'  => 'Y',
-]);
-
-// Обновить
-CSender::Update($senderId, ['NAME' => 'Новое имя']);
-
-// Удалить
-CSender::Delete($senderId);
-```
-
----
-
-## CSubscribe — рубрики рассылки
-
-```php
-Loader::includeModule('subscribe');
-
-// Получить список рубрик
-$rubricRes = CSubscribe::GetList(['SORT' => 'ASC'], ['ACTIVE' => 'Y', 'SITE_ID' => SITE_ID]);
-while ($rubric = $rubricRes->Fetch()) {
-    // ID, NAME, DESCRIPTION, ACTIVE, SORT, SITE_ID, SENDER_ID, SUBSCR_FORMAT
-}
-
-// Получить рубрику по ID
-$rubric = CSubscribe::GetByID($rubricId);
-
-// Создать рубрику
-$rubricId = CSubscribe::Add([
-    'SITE_ID'       => SITE_ID,
-    'NAME'          => 'Новости',
-    'DESCRIPTION'   => 'Ежемесячная новостная рассылка',
-    'ACTIVE'        => 'Y',
-    'SORT'          => 100,
-    'SENDER_ID'     => $senderId,       // ID отправителя из CSender
-    'SUBSCR_FORMAT' => 'html',          // html или text
-    'TEMPLATE_ID'   => $templateId,     // шаблон письма по умолчанию
-    'AUTO_SEND_TIME'=> '',
-    'DAYS_OF_MONTH' => '',
-    'DAYS_OF_WEEK'  => '',
-    'SEND_TIME'     => '',
-]);
-
-// Обновить
-CSubscribe::Update($rubricId, ['NAME' => 'Актуальные новости']);
-
-// Удалить
-CSubscribe::Delete($rubricId);
-```
-
----
-
-## CSubscription — подписчики
-
-```php
-Loader::includeModule('subscribe');
-
-// Получить подписки по email
-$subscriptionRes = CSubscription::GetByEmail('user@example.com', SITE_ID);
-$subscription = $subscriptionRes->Fetch();
-// ID, EMAIL, USER_ID, FORMAT, CONFIRMED, CODE (для ссылки отписки), DATE_INSERT
-
-// Получить подписку по ID
-$subscription = CSubscription::GetByID($subscriptionId);
-
-// Получить все рубрики подписчика
-$rubricIds = [];
-if ($subscription) {
-    $rubricRes = CSubscription::GetRubricList($subscription['ID']);
-    while ($r = $rubricRes->Fetch()) {
-        $rubricIds[] = (int)$r['RUBRIC_ID'];
-    }
-}
-
-// Получить всех подписчиков рубрики
-$subscribers = CSubscription::GetList(
-    ['DATE_INSERT' => 'DESC'],
-    ['RUBRIC_ID' => $rubricId, 'CONFIRMED' => 'Y', 'ACTIVE' => 'Y'],
-    false, false,
-    ['ID', 'EMAIL', 'USER_ID', 'FORMAT', 'DATE_INSERT']
+$rubrics = CRubric::GetList(
+    ['SORT' => 'ASC'],
+    ['ACTIVE' => 'Y', 'LID' => SITE_ID]
 );
-while ($sub = $subscribers->Fetch()) { /* ... */ }
 
-// Добавить/обновить подписчика вручную
-$subscriptionId = CSubscription::Add([
-    'SITE_ID'   => SITE_ID,
-    'USER_ID'   => $userId,   // 0 если анонимный
-    'EMAIL'     => 'user@example.com',
-    'FORMAT'    => 'html',
-    'CONFIRMED' => 'Y',       // Y = подтверждена, N = ожидает подтверждения
-    'ACTIVE'    => 'Y',
-    'RID'       => [$rubricId], // массив ID рубрик
+while ($rubric = $rubrics->Fetch())
+{
+    // ID, NAME, CODE, SORT, LID, ACTIVE, DESCRIPTION, AUTO, VISIBLE,
+    // LAST_EXECUTED, FROM_FIELD, DAYS_OF_MONTH, DAYS_OF_WEEK, TIMES_OF_DAY, TEMPLATE
+}
+```
+
+### Получить рубрику по ID
+
+```php
+$rubric = CRubric::GetByID($rubricId)->Fetch();
+```
+
+### Создать / обновить / удалить рубрику
+
+```php
+$rubric = new CRubric();
+
+$rubricId = $rubric->Add([
+    'NAME' => 'Новости компании',
+    'CODE' => 'company_news',
+    'LID' => SITE_ID,
+    'ACTIVE' => 'Y',
+    'VISIBLE' => 'Y',
+    'SORT' => 100,
+    'DESCRIPTION' => 'Еженедельная рассылка',
+    'FROM_FIELD' => 'noreply@example.com',
+    'AUTO' => 'N',
 ]);
 
-// Удалить подписку
+if (!$rubricId)
+{
+    $error = $rubric->LAST_ERROR;
+}
+
+$rubric->Update($rubricId, [
+    'NAME' => 'Актуальные новости компании',
+]);
+
+CRubric::Delete($rubricId);
+```
+
+Если рубрика `ACTIVE=Y` и `AUTO=Y`, ядро может добавить агент `CPostingTemplate::Execute();`.
+
+---
+
+## `CSubscription`
+
+`CSubscription` хранит email-подписки и привязку к рубрикам.
+
+### Получить список подписок
+
+```php
+$subscriptions = CSubscription::GetList(
+    ['DATE_INSERT' => 'DESC'],
+    [
+        'ACTIVE' => 'Y',
+        'CONFIRMED' => 'Y',
+        'RUBRIC_MULTI' => [$rubricId],
+    ]
+);
+
+while ($subscription = $subscriptions->Fetch())
+{
+    // ID, USER_ID, EMAIL, FORMAT, CONFIRM_CODE, CONFIRMED, DATE_INSERT, DATE_UPDATE
+}
+```
+
+### Получить по ID
+
+```php
+$subscription = CSubscription::GetByID($subscriptionId)->Fetch();
+```
+
+### Получить по email
+
+```php
+$subscription = CSubscription::GetByEmail('user@example.com', false)->Fetch();
+```
+
+Важная деталь текущего core:
+
+- второй аргумент `GetByEmail($email, $user_id = false)` — это **`USER_ID`**, а не `SITE_ID`
+
+### Получить рубрики подписки
+
+```php
+$rubrics = CSubscription::GetRubricList($subscriptionId);
+while ($rubric = $rubrics->Fetch())
+{
+    // ID, NAME, SORT, LID, ACTIVE, VISIBLE
+}
+```
+
+### Создать подписку
+
+```php
+$subscription = new CSubscription();
+
+$subscriptionId = $subscription->Add([
+    'USER_ID' => $USER->IsAuthorized() ? (int)$USER->GetID() : false,
+    'EMAIL' => 'user@example.com',
+    'FORMAT' => 'html',
+    'ACTIVE' => 'Y',
+    'CONFIRMED' => 'Y',
+    'RUB_ID' => [$rubricId],
+    'SEND_CONFIRM' => 'N',
+], SITE_ID);
+
+if (!$subscriptionId)
+{
+    $error = $subscription->LAST_ERROR;
+}
+```
+
+Подтверждённые полезные поля:
+
+- `USER_ID`
+- `EMAIL`
+- `FORMAT` (`html` / `text`)
+- `ACTIVE`
+- `CONFIRMED`
+- `RUB_ID`
+- `SEND_CONFIRM`
+- `ALL_SITES`
+
+### Обновить подписку
+
+```php
+$subscription = new CSubscription();
+
+$ok = $subscription->Update($subscriptionId, [
+    'ACTIVE' => 'Y',
+    'CONFIRMED' => 'Y',
+    'RUB_ID' => [$rubricId1, $rubricId2],
+    'SEND_CONFIRM' => 'N',
+], SITE_ID);
+```
+
+### Удалить подписку
+
+```php
 CSubscription::Delete($subscriptionId);
 ```
 
 ---
 
-## CSubscribe::Subscribe — подписать пользователя
+## Подтверждение / отписка
+
+При `SEND_CONFIRM <> 'N'` ядро отправляет событие `SUBSCRIBE_CONFIRM` и использует `CONFIRM_CODE`.
+
+Есть подтверждённый helper:
 
 ```php
-Loader::includeModule('subscribe');
-
-// Подписать авторизованного пользователя
-// CSubscribe::Subscribe($rubricIds, $userId, $email, $format, $siteId, $confirmed)
-$result = CSubscribe::Subscribe(
-    [$rubricId1, $rubricId2],   // массив ID рубрик
-    $userId,                     // ID пользователя (0 для анонимного)
-    'user@example.com',          // email
-    'html',                      // формат: html или text
-    SITE_ID,                     // SITE_ID обязателен
-    'Y'                          // Y = сразу подтверждена (без письма-подтверждения)
-);
-// $result: ID подписки (int) или false при ошибке
-
-// Подписать анонимного (с отправкой письма-подтверждения)
-$result = CSubscribe::Subscribe(
-    [$rubricId],
-    0,
-    'anonymous@example.com',
-    'html',
-    SITE_ID,
-    'N'   // N = требует подтверждения по email
-);
-
-// Отписать по ID подписки
-CSubscribe::UnSubscribe($subscriptionId);
-
-// Отписать по email и рубрике
-$sub = CSubscription::GetByEmail('user@example.com', SITE_ID)->Fetch();
-if ($sub) {
-    CSubscription::Update($sub['ID'], ['ACTIVE' => 'N']);
-}
+CSubscription::Authorize($subscriptionId, $confirmCode);
 ```
+
+Также можно подтвердить подписку через `Update()`:
+
+```php
+$subscription = new CSubscription();
+$subscription->Update($subscriptionId, [
+    'CONFIRM_CODE' => $confirmCode,
+], SITE_ID);
+```
+
+В текущем core не нужно придумывать поле `CODE` или endpoint `unsubscribe.php` как базовый контракт модуля. Legacy subscribe-flow работает через `ID` + `CONFIRM_CODE` и компонент `subscribe.edit`.
 
 ---
 
-## CPosting — создание рассылки
+## `CPosting`
+
+`CPosting` — это конкретная рассылка.
+
+### Создать posting
 
 ```php
-Loader::includeModule('subscribe');
+$posting = new CPosting();
 
-// Создать новое письмо-рассылку
-$postingId = CPosting::Add([
-    'SITE_ID'     => SITE_ID,
-    'RUBRIC_ID'   => [$rubricId],    // рубрики-получатели
-    'SENDER_ID'   => $senderId,
-    'FROM_FIELD'  => '"Компания" <noreply@example.com>',  // если не через senderId
-    'SUBJECT'     => 'Новости за неделю',
-    'BODY_TYPE'   => 'html',         // html или text
-    'BODY'        => '<html><body>
-        <h1>Заголовок</h1>
-        <p>Текст рассылки</p>
-        <a href="#UNSUB_LINK#">Отписаться</a>
-    </body></html>',
-    'BODY_TYPE_ALT' => 'text',       // альтернативный формат
-    'BODY_ALT'      => 'Текст рассылки (текстовая версия). Отписаться: #UNSUB_LINK#',
-    'DIRECT_SEND' => 'N',            // N = через очередь CSending
-    'TEMPLATE_ID' => 0,
-]);
-
-// Обновить рассылку
-CPosting::Update($postingId, ['SUBJECT' => 'Обновлённая тема']);
-
-// Удалить
-CPosting::Delete($postingId);
-
-// Получить список рассылок
-$postings = CPosting::GetList(
-    ['DATE_CREATE' => 'DESC'],
-    ['SITE_ID' => SITE_ID],
-    false, ['nTopCount' => 20],
-    ['ID', 'SUBJECT', 'STATUS', 'DATE_CREATE', 'SENT_COUNT']
-);
-while ($p = $postings->Fetch()) { /* STATUS: N=новая, P=в процессе, Y=отправлена */ }
-```
-
----
-
-## CSending — отправка рассылки
-
-```php
-Loader::includeModule('subscribe');
-
-// Инициировать отправку рассылки
-// CSending создаёт задачу отправки, реальная отправка идёт через агенты
-
-// Способ 1: через CSending::Add (создать задание на отправку)
-$sendingId = CSending::Add([
-    'POSTING_ID'   => $postingId,
-    'DATE_CREATE'  => date('d.m.Y H:i:s'),
-    'DATE_EXECUTE' => date('d.m.Y H:i:s'),  // когда отправить (сейчас или в будущем)
-    'STATUS'       => 'W',                   // W=waiting, S=sending, Y=sent, E=error
-    'TRACK_CLICK'  => 'Y',
-    'TRACK_READ'   => 'Y',
-]);
-
-// Способ 2: немедленная отправка через SendMessage (legacy, синхронная)
-// Используй только для тестовых отправок — блокирует выполнение
-$result = CSending::SendMessage(
-    $postingId,
-    'recipient@example.com',         // конкретный email или null для всех подписчиков
-    [
-        '#NAME#'    => 'Иван',        // плейсхолдеры для замены в теле письма
-        '#SURNAME#' => 'Иванов',
-    ]
-);
-
-// Получить статус отправки
-$sending = CSending::GetByID($sendingId);
-// STATUS: W=ожидание, S=отправляется, Y=отправлено, E=ошибка
-// SENT_COUNT — количество отправленных
-
-// Запустить обработку очереди (вызывается агентом автоматически)
-CSending::InitAgents();
-```
-
----
-
-## CPostingTemplate — шаблоны писем
-
-```php
-Loader::includeModule('subscribe');
-
-// Получить список шаблонов
-$templateRes = CPostingTemplate::GetList(['NAME' => 'ASC'], ['SITE_ID' => SITE_ID]);
-while ($tmpl = $templateRes->Fetch()) {
-    // ID, NAME, SUBJECT, BODY, BODY_TYPE, SITE_ID
-}
-
-// Получить шаблон по ID
-$template = CPostingTemplate::GetByID($templateId);
-
-// Создать шаблон
-$templateId = CPostingTemplate::Add([
-    'SITE_ID'   => SITE_ID,
-    'NAME'      => 'Базовый HTML-шаблон',
-    'SUBJECT'   => 'Рассылка от #DATE#',
+$postingId = $posting->Add([
+    'FROM_FIELD' => 'noreply@example.com',
+    'TO_FIELD' => 'noreply@example.com',
+    'SUBJECT' => 'Новости недели',
     'BODY_TYPE' => 'html',
-    'BODY'      => '<!DOCTYPE html><html><body>
-        <table width="600" cellpadding="0" cellspacing="0">
-            <tr><td>#CONTENT#</td></tr>
-            <tr><td><a href="#UNSUB_LINK#">Отписаться</a></td></tr>
-        </table>
-    </body></html>',
+    'BODY' => '<p>Контент письма</p>',
+    'DIRECT_SEND' => 'N',
+    'SUBSCR_FORMAT' => 'html',
+    'RUB_ID' => [$rubricId],
+    'GROUP_ID' => [],
 ]);
 
-// Плейсхолдеры в теле письма:
-// #UNSUB_LINK# — ссылка для отписки (генерируется автоматически)
-// #SITE_URL#   — URL сайта
-// #DATE#       — дата отправки
-// #USER_NAME#  — имя получателя (если USER_ID привязан)
-// #EMAIL#      — email получателя
-// Кастомные: любые #MY_VAR# — замени через CSending::SendMessage массивом замен
-```
-
----
-
-## Проверить подписку
-
-```php
-Loader::includeModule('subscribe');
-
-$email = 'user@example.com';
-
-// Проверить, подписан ли email на хоть одну рубрику сайта
-$subRes = CSubscription::GetByEmail($email, SITE_ID);
-$subscription = $subRes->Fetch();
-
-if ($subscription && $subscription['CONFIRMED'] === 'Y' && $subscription['ACTIVE'] === 'Y') {
-    echo 'Подписан, ID: ' . $subscription['ID'];
-
-    // Получить список рубрик подписчика
-    $rubrics = CSubscription::GetRubricList($subscription['ID']);
-    while ($r = $rubrics->Fetch()) {
-        echo 'Рубрика: ' . $r['RUBRIC_ID'];
-    }
-} else {
-    echo 'Не подписан или ожидает подтверждения';
-}
-
-// Проверить подписку на конкретную рубрику
-function isSubscribedToRubric(string $email, int $rubricId, string $siteId): bool
+if (!$postingId)
 {
-    $subRes = CSubscription::GetByEmail($email, $siteId);
-    $sub = $subRes->Fetch();
-    if (!$sub || $sub['CONFIRMED'] !== 'Y' || $sub['ACTIVE'] !== 'Y') {
-        return false;
-    }
-
-    $rubrics = CSubscription::GetRubricList($sub['ID']);
-    while ($r = $rubrics->Fetch()) {
-        if ((int)$r['RUBRIC_ID'] === $rubricId) {
-            return true;
-        }
-    }
-    return false;
+    $error = $posting->LAST_ERROR;
 }
+```
+
+Ключевые поля, подтверждённые по текущему core/admin UI:
+
+- `FROM_FIELD`
+- `TO_FIELD`
+- `SUBJECT`
+- `BODY_TYPE`
+- `BODY`
+- `DIRECT_SEND`
+- `SUBSCR_FORMAT`
+- `RUB_ID`
+- `GROUP_ID`
+- `EMAIL_FILTER`
+- `AUTO_SEND_TIME`
+
+### Получить posting
+
+```php
+$posting = CPosting::GetByID($postingId)->Fetch();
+```
+
+### Получить список posting
+
+```php
+$postingApi = new CPosting();
+
+$list = $postingApi->GetList(
+    ['ID' => 'DESC'],
+    ['STATUS_ID' => 'D'],
+    ['ID', 'STATUS', 'FROM_FIELD', 'TO_FIELD', 'SUBJECT', 'DATE_SENT'],
+    false
+);
+
+while ($row = $list->Fetch())
+{
+    // ...
+}
+```
+
+### Обновить / удалить
+
+```php
+$posting = new CPosting();
+
+$posting->Update($postingId, [
+    'SUBJECT' => 'Новая тема письма',
+]);
+
+CPosting::Delete($postingId);
 ```
 
 ---
 
-## Ссылка отписки (#UNSUB_LINK#)
+## Запуск отправки posting
 
-```html
-<!-- В теле письма (HTML) -->
-<a href="#UNSUB_LINK#">Отписаться от рассылки</a>
-
-<!-- В текстовой версии -->
-Отписаться: #UNSUB_LINK#
-```
+Для боевой отправки posting обычно переводят из draft в processing:
 
 ```php
-// Ссылка генерируется автоматически при отправке через CSending
-// Формат: /bitrix/tools/subscribe/unsubscribe.php?code=HASH&...
-// HASH — уникальный код подписчика из поля CSubscription.CODE
+$posting = new CPosting();
 
-// Получить код для ручной генерации ссылки отписки
-$sub = CSubscription::GetByEmail('user@example.com', SITE_ID)->Fetch();
-if ($sub) {
-    $unsubUrl = '/bitrix/tools/subscribe/unsubscribe.php?code=' . urlencode($sub['CODE']);
-}
+$posting->ChangeStatus($postingId, 'P');
 ```
+
+Что делает current core:
+
+- собирает `b_posting_email`
+- набирает получателей из рубрик / групп / BCC
+- дальше `CPosting::AutoSend(...)` или cron/agent доотправляет батчами
+
+Для ручного запуска:
+
+```php
+CPosting::AutoSend($postingId, true, SITE_ID);
+```
+
+Для тестовой или синхронной отправки есть:
+
+```php
+$posting = new CPosting();
+$result = $posting->SendMessage($postingId, 0, 0, false);
+```
+
+Но `SendMessage()` блокирует выполнение и не подходит как default-стратегия для массовой рассылки.
 
 ---
 
-## Полный пример: создать рассылку и поставить в очередь
+## `CPostingTemplate`
+
+`CPostingTemplate` в текущем core работает не как DB-шаблон письма, а как файловый auto-template.
+
+Шаблоны лежат в:
+
+```text
+getLocalPath('php_interface/subscribe/templates', BX_PERSONAL_ROOT)
+```
+
+### Получить список шаблонов
 
 ```php
-use Bitrix\Main\Loader;
-
-Loader::includeModule('subscribe');
-
-// 1. Убедиться что рубрика и отправитель существуют
-$sender = CSender::GetByID($senderId)->Fetch();
-$rubric = CSubscribe::GetByID($rubricId)->Fetch();
-
-if (!$sender || !$rubric || $rubric['ACTIVE'] !== 'Y') {
-    throw new \RuntimeException('Отправитель или рубрика недоступны');
-}
-
-// 2. Создать письмо
-$postingId = CPosting::Add([
-    'SITE_ID'    => SITE_ID,
-    'RUBRIC_ID'  => [$rubricId],
-    'SENDER_ID'  => $senderId,
-    'SUBJECT'    => 'Еженедельный дайджест',
-    'BODY_TYPE'  => 'html',
-    'BODY'       => '<html><body><p>Контент письма</p><a href="#UNSUB_LINK#">Отписаться</a></body></html>',
-    'DIRECT_SEND'=> 'N',
-]);
-
-if (!$postingId) {
-    global $APPLICATION;
-    throw new \RuntimeException('Ошибка создания рассылки: ' . $APPLICATION->GetException()->GetString());
-}
-
-// 3. Поставить в очередь отправки
-$sendingId = CSending::Add([
-    'POSTING_ID'   => $postingId,
-    'DATE_CREATE'  => date('d.m.Y H:i:s'),
-    'DATE_EXECUTE' => date('d.m.Y H:i:s'),
-    'STATUS'       => 'W',
-    'TRACK_CLICK'  => 'Y',
-    'TRACK_READ'   => 'Y',
-]);
-
-// Агент /bitrix/modules/subscribe/agent.php подхватит задание и отправит по батчам
+$templates = CPostingTemplate::GetList();
+// массив путей, а не DB result
 ```
+
+### Получить шаблон по пути
+
+```php
+$paths = CPostingTemplate::GetList();
+$template = CPostingTemplate::GetByID($paths[0] ?? '');
+```
+
+### Auto-run
+
+Если рубрика настроена как `AUTO=Y`, агент вызывает:
+
+```php
+CPostingTemplate::Execute();
+```
+
+Он рассчитывает расписание рубрики, генерирует posting через шаблон и переводит его в отправку.
 
 ---
 
 ## Gotchas
 
-- **`Loader::includeModule('subscribe')`** обязателен. Без него `CSender`, `CSubscribe`, `CSubscription`, `CPosting`, `CSending` не определены.
-- **`SITE_ID` обязателен для рубрик**: рубрики привязаны к сайту. При создании и выборке рубрик всегда передавай `SITE_ID`. Без него рубрика может создаться или не найтись для другого сайта в мультисайтовой установке.
-- **Подтверждение подписки `CONFIRMED`**: если создаёшь подписку с `CONFIRMED = 'N'`, пользователь получит письмо-подтверждение. Без клика по ссылке рассылки ему не придут. При подписке из кода (например, при регистрации) ставь `CONFIRMED = 'Y'` явно.
-- **`#UNSUB_LINK#`** генерируется только если в теле письма есть именно этот плейсхолдер. Без него ссылки отписки не будет — нарушение антиспам-законодательства.
-- **`CSubscription::GetByEmail()`** возвращает `DB::Result`, не массив. Всегда вызывай `->Fetch()`.
-- **Массовая отправка — только через агенты**: `CSending::SendMessage()` синхронна и блокирует выполнение. Для реальных рассылок используй `CSending::Add()` — агент отправит по батчам по ~100 писем за итерацию.
-- **`CSubscription::GetRubricList()`** принимает `$subscriptionId`, не `$userId` и не email. Сначала получи объект подписки через `GetByEmail()` или `GetByID()`.
-- **Дубликаты**: `CSubscribe::Subscribe()` проверяет дубликаты по email + SITE_ID и обновляет существующую подписку, не создаёт вторую. Безопасно вызывать повторно.
-- **`CPosting::Add()` поле `RUBRIC_ID`** — массив ID рубрик, не одно число.
-- **Статусы `CPosting`**: `N` = новая (не отправлялась), `P` = в процессе, `Y` = отправлена. Повторно отправить рассылку со статусом `Y` нельзя — создай новую через `CPosting::Add()`.
-- **Кодировка и MIME**: Bitrix автоматически добавляет `Content-Type: text/html; charset=utf-8` и multipart если есть оба тела (BODY + BODY_ALT). Не добавляй эти заголовки вручную.
+- В текущем core модуля `subscribe` нет подтверждённого API `CSender`, `CSubscribe`, `CSending`. Не описывай их как штатный контракт этого ядра.
+- `CSubscription::GetByEmail($email, $userId)` вторым параметром принимает `USER_ID`, а не `SITE_ID`.
+- `CSubscription::GetRubricList($subscriptionId)` принимает именно ID подписки и возвращает строки рубрик с полями `ID/NAME/...`, а не `RUBRIC_ID`.
+- Для `CPosting::Add()` используй `RUB_ID`, а не `RUBRIC_ID`.
+- `CPostingTemplate::GetList()` возвращает массив путей, не `CDBResult`.
+- `CPosting::ChangeStatus($id, 'P')` — нормальная точка входа в очередь отправки. Не выдумывай отдельную сущность “sending job”.
+- `SendMessage()` синхронен. Для боевой рассылки ориентируйся на queue/agent/cron workflow.
+- Если включаешь `SEND_CONFIRM`, не забывай, что подписка останется неподтверждённой до прохождения confirm-flow.

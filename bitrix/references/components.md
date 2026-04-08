@@ -1,6 +1,8 @@
 # Bitrix Компоненты — справочник
 
 > Reference для Bitrix-скилла. Загружай когда задача связана с компонентами, CBitrixComponent, шаблонами, кешированием в компонентах, CComponentEngine или Edit Area.
+>
+> Audit note: ниже сверено с текущим `main/classes/general/component.php`. В этой версии класс компонента действительно ищется через diff `get_declared_classes()` после `include_once(class.php)`, а `startResultCache()` сам открывает tag cache при `BX_COMP_MANAGED_CACHE`.
 
 ## Содержание
 - Структура компонента: .parameters.php, .description.php, class.php, шаблоны
@@ -22,7 +24,7 @@
 - **Современный (`class.php`)** — определяет класс, расширяющий `CBitrixComponent`. Переопределяемые методы, автозагрузка, тестируемость.
 - **Legacy (`component.php`)** — процедурный файл. Используется если `class.php` отсутствует.
 
-Если `class.php` существует и содержит подкласс `CBitrixComponent`, Bitrix создаёт его экземпляр. Поиск идёт через `get_declared_classes()` после `include_once` — берётся первый новый класс, расширяющий `CBitrixComponent`.
+Если `class.php` существует и содержит подкласс `CBitrixComponent`, Bitrix создаёт его экземпляр. Поиск идёт через `get_declared_classes()` после `include_once`: ядро перебирает новые классы, берёт подходящий подкласс `CBitrixComponent`, а если позже встретит более специфический наследник, может заменить ранее выбранный.
 
 ### Имя и путь компонента
 
@@ -211,7 +213,7 @@ $CACHE_MANAGER->ClearByTag('iblock_id_5');
 
 **Gotcha: `arParams['~KEY']`** — после `onPrepareComponentParams()` и `__prepareComponentParams()` все строковые параметры HTML-экранируются. Raw-значение доступно через `$this->arParams['~IBLOCK_ID']`. Это сделано для безопасности шаблонов.
 
-**Gotcha: `arResultCacheKeys`** — если задать массив ключей, в кеш попадут только эти ключи `arResult`. Удобно для больших результатов с некешируемыми данными.
+**Gotcha: `arResultCacheKeys`** — после шаблона Bitrix урежет `arResult` до перечисленных ключей и уже этот сокращённый набор сохранит в кеш. Сам шаблон при этом ещё видит полный `arResult`.
 
 ```php
 // Кешируем только часть arResult
@@ -307,4 +309,3 @@ $componentPage = $engine->guessComponentPath($folder, $arUrlTemplates, $arVariab
 ```
 
 ---
-
