@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.3.11] — 2026-04-08
+
+### Added
+- `bitrix/allow-update.sh` — helper-скрипт, который одной командой добавляет глобальное разрешение на запуск `update.sh` в `~/.claude/settings.json`
+
+### Changed
+- `README.md` больше не предлагает руками редактировать проектный `.claude/settings.local.json` для автообновления навыка
+- Инструкция по постоянному разрешению на `update.sh` упрощена до одной команды и переведена на глобальный `~/.claude/settings.json`
+
 ## [1.3.10] — 2026-04-08
 
 ### Added
@@ -61,7 +70,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.10...HEAD
+[Unreleased]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.11...HEAD
+[1.3.11]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.10...v1.3.11
 [1.3.10]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.9...v1.3.10
 [1.3.9]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.8...v1.3.9
 [1.3.8]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.7...v1.3.8

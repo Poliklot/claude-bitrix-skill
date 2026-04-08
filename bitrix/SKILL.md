@@ -3,7 +3,7 @@ name: bitrix
 description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, blog, forms, HL blocks, templates, import/export, caching, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.3.10"
+  version: "1.3.11"
 compatibility: Designed for Claude Code on 1C-Bitrix CMS projects
 ---
 
