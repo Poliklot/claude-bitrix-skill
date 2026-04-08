@@ -16,6 +16,22 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master
 /bitrix <ваша задача>
 ```
 
+Если хочешь, чтобы агент мог в любой момент запускать `update.sh` без повторных запросов на разрешение, добавь правило в `.claude/settings.local.json` проекта:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash ~/.claude/skills/bitrix/update.sh:*)"
+    ]
+  }
+}
+```
+
+Если файл уже существует, просто добавь строку `"Bash(bash ~/.claude/skills/bitrix/update.sh:*)"` в массив `permissions.allow`.
+
+Это полезно, если хочешь всегда держать навык на свежей версии: агент сможет сам проверять обновления и запускать `update.sh`, и не придётся каждый раз вручную подтверждать проверку.
+
 ## Обновление
 
 ```bash
