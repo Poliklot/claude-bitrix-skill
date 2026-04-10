@@ -9,19 +9,15 @@ Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Cod
 - `Claude Code` — `~/.claude/skills/bitrix`
 - `Codex` — `$CODEX_HOME/skills/bitrix` или `~/.codex/skills/bitrix`
 
-Репозиторий уже переименован в `bitrix-agent-skill`. Bootstrap URL ниже переведены на новый slug, а install/update-скрипты всё ещё сохраняют fallback на legacy `claude-bitrix-skill` для старых установок и мягкой миграции.
-
 ### macOS / Linux
 
 1. Установи навык.
-
-По умолчанию installer работает в режиме `auto`: ставит навык во все найденные home-контуры Claude/Codex.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash
 ```
 
-2. Если хочешь поставить только в один контур, используй флаги:
+2. Установи навык только в нужный контур:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --claude
@@ -29,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --both
 ```
 
-3. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
+3. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
 
 ```bash
 bash ~/.claude/skills/bitrix/allow-update.sh
@@ -43,7 +39,7 @@ bash ~/.claude/skills/bitrix/allow-update.sh
 irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1 | iex
 ```
 
-2. Если хочешь выбрать только один контур, можно вызвать bootstrap-скрипт так:
+2. Установи навык только в нужный контур:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Claude
@@ -51,13 +47,11 @@ irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Both
 ```
 
-3. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
+3. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-update.ps1"
 ```
-
-Оба helper-скрипта относятся только к `Claude`: они добавляют разрешения глобально в `~/.claude/settings.json`, а не в проект.
 
 ### После установки
 
@@ -94,16 +88,6 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1"
 ```
 
 Начиная с версии `1.3.7`, при первом содержательном обращении к `/bitrix` навык должен сначала выполнить такую проверку и, если версия выросла, предложить обновление в явной форме: `Обновилась версия скилла с X до Y. Давай обновим?`
-
-## Релизы
-
-Поддерживаемый процесс релиза теперь полностью автоматический:
-
-1. Обновить `bitrix/VERSION`, `bitrix/SKILL.md` и `CHANGELOG.md`.
-2. Запушить изменения в `master`.
-3. GitHub Actions сам проверит текущую версию, создаст tag `vX.Y.Z`, если его ещё нет, и сразу опубликует GitHub Release.
-
-Отдельно руками создавать tag или release в GitHub UI не нужно.
 
 ## Как это работает
 
