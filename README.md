@@ -11,14 +11,21 @@ Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Cod
 
 ### macOS / Linux
 
-Для большинства пользователей достаточно двух команд:
+Для большинства пользователей нужны только шаги 1 и 2.
+
+1. Установи последнюю release-версию навыка.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash
+```
+
+2. Разреши Claude запускать апдейтер без лишних запросов на разрешение.
+
+```bash
 bash ~/.claude/skills/bitrix/allow-update.sh
 ```
 
-Опционально: установка только в нужный контур
+3. Опционально: установи навык только в нужный контур.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --claude
@@ -26,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --both
 ```
 
-Опционально: установка конкретной release-версии
+4. Опционально: установи конкретную release-версию.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.5.0 --claude
@@ -34,14 +41,21 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 
 ### Windows (PowerShell)
 
-Для большинства пользователей достаточно двух команд:
+Для большинства пользователей нужны только шаги 1 и 2.
+
+1. Установи последнюю release-версию навыка.
 
 ```powershell
 irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1 | iex
+```
+
+2. Разреши Claude запускать апдейтер без лишних запросов на разрешение.
+
+```powershell
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-update.ps1"
 ```
 
-Опционально: установка только в нужный контур
+3. Опционально: установи навык только в нужный контур.
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Claude
@@ -49,7 +63,7 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-upda
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Both
 ```
 
-Опционально: установка конкретной release-версии
+4. Опционально: установи конкретную release-версию.
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.5.0 -Claude
