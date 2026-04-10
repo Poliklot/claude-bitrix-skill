@@ -16,8 +16,10 @@ LOCAL_VERSION_FILE="${SCRIPT_DIR}/VERSION"
 
 FORCE=false
 CHECK_ONLY=false
+REQUESTED_VERSION=""
 SELECTED_REPO=""
 REMOTE_VERSION=""
+INSTALL_REF="$BRANCH"
 
 usage() {
   cat <<'EOF'
@@ -26,26 +28,80 @@ Usage:
   bash ~/.codex/skills/bitrix/update.sh
   bash ~/.claude/skills/bitrix/update.sh --force
   bash ~/.codex/skills/bitrix/update.sh --check
+  bash ~/.claude/skills/bitrix/update.sh --version 1.5.0
 EOF
+}
+
+normalize_version() {
+  local version="${1#v}"
+  printf '%s' "${version//[[:space:]]/}"
+}
+
+version_to_tag() {
+  printf 'v%s' "$(normalize_version "$1")"
 }
 
 build_raw_url() {
   local repo="$1"
-  local path="$2"
-  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$repo" "$BRANCH" "$path"
+  local ref="$2"
+  local path="$3"
+  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$repo" "$ref" "$path"
+}
+
+build_latest_release_url() {
+  local repo="$1"
+  printf 'https://github.com/%s/releases/latest' "$repo"
+}
+
+fetch_branch_version() {
+  local repo="$1"
+  curl -fsSL --retry 3 --retry-delay 2 "$(build_raw_url "$repo" "$BRANCH" "bitrix/VERSION")" 2>/dev/null | tr -d '[:space:]'
+}
+
+fetch_latest_release_tag() {
+  local repo="$1"
+  local effective_url=""
+
+  effective_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' "$(build_latest_release_url "$repo")" 2>/dev/null || true)"
+  if [[ "$effective_url" == *"/releases/tag/"* ]]; then
+    printf '%s' "${effective_url##*/}"
+    return 0
+  fi
+
+  return 1
 }
 
 resolve_repo() {
   local repo=""
-  local version=""
+  local branch_version=""
+  local latest_tag=""
 
   for repo in "${REPO_CANDIDATES[@]}"; do
-    if version="$(curl -fsSL --retry 3 --retry-delay 2 "$(build_raw_url "$repo" "bitrix/VERSION")" 2>/dev/null | tr -d '[:space:]')"; then
-      if [[ -n "$version" ]]; then
+    branch_version="$(fetch_branch_version "$repo" || true)"
+
+    if [[ -n "$REQUESTED_VERSION" ]]; then
+      if [[ -n "$branch_version" ]]; then
         SELECTED_REPO="$repo"
-        REMOTE_VERSION="$version"
+        REMOTE_VERSION="$(normalize_version "$REQUESTED_VERSION")"
+        INSTALL_REF="$(version_to_tag "$REQUESTED_VERSION")"
         return 0
       fi
+      continue
+    fi
+
+    latest_tag="$(fetch_latest_release_tag "$repo" || true)"
+    if [[ -n "$latest_tag" ]]; then
+      SELECTED_REPO="$repo"
+      REMOTE_VERSION="$(normalize_version "$latest_tag")"
+      INSTALL_REF="$latest_tag"
+      return 0
+    fi
+
+    if [[ -n "$branch_version" ]]; then
+      SELECTED_REPO="$repo"
+      REMOTE_VERSION="$branch_version"
+      INSTALL_REF="$BRANCH"
+      return 0
     fi
   done
 
@@ -60,7 +116,7 @@ read_local_version() {
   fi
 }
 
-normalize_version() {
+normalize_version_for_compare() {
   local version="${1#v}"
   local major=0
   local minor=0
@@ -72,7 +128,7 @@ normalize_version() {
 }
 
 version_gt() {
-  [[ "$(normalize_version "$1")" > "$(normalize_version "$2")" ]]
+  [[ "$(normalize_version_for_compare "$1")" > "$(normalize_version_for_compare "$2")" ]]
 }
 
 detect_target_flag() {
@@ -114,13 +170,23 @@ check_mode() {
   echo "UP_TO_DATE version=${local_version}"
 }
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
     --force)
       FORCE=true
+      shift
       ;;
     --check)
       CHECK_ONLY=true
+      shift
+      ;;
+    --version)
+      [[ "$#" -ge 2 ]] || {
+        echo "Error: --version requires a value." >&2
+        exit 2
+      }
+      REQUESTED_VERSION="$(normalize_version "$2")"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -141,7 +207,7 @@ fi
 echo "Checking versions"
 
 resolve_repo || {
-  echo "Error: Could not fetch remote version from current or legacy repository slug" >&2
+  echo "Error: Could not resolve repository or target version" >&2
   exit 1
 }
 
@@ -159,8 +225,8 @@ if [[ "$FORCE" == false ]]; then
   fi
 fi
 
-echo "Fetching latest installer from GitHub..."
-INSTALL_SCRIPT_URL="$(build_raw_url "$SELECTED_REPO" "install.sh")"
+echo "Fetching installer from GitHub..."
+INSTALL_SCRIPT_URL="$(build_raw_url "$SELECTED_REPO" "$INSTALL_REF" "install.sh")"
 SCRIPT="$(curl -fsSL --retry 3 --retry-delay 2 "$INSTALL_SCRIPT_URL")"
 [[ -n "$SCRIPT" ]] || {
   echo "Error: Could not download install.sh" >&2
@@ -168,9 +234,14 @@ SCRIPT="$(curl -fsSL --retry 3 --retry-delay 2 "$INSTALL_SCRIPT_URL")"
 }
 
 TARGET_FLAG="$(detect_target_flag)"
+ARGS=("$TARGET_FLAG")
 
-if [[ "$FORCE" == true ]]; then
-  exec bash -c "$SCRIPT" -- "$TARGET_FLAG" --force
+if [[ -n "$REQUESTED_VERSION" ]]; then
+  ARGS+=("--version" "$REQUESTED_VERSION")
 fi
 
-exec bash -c "$SCRIPT" -- "$TARGET_FLAG"
+if [[ "$FORCE" == true ]]; then
+  ARGS+=("--force")
+fi
+
+exec bash -c "$SCRIPT" -- "${ARGS[@]}"

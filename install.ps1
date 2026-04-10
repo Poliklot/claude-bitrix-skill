@@ -4,7 +4,8 @@ param(
     [switch]$Claude,
     [switch]$Codex,
     [switch]$Both,
-    [switch]$Auto
+    [switch]$Auto,
+    [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +50,27 @@ function Invoke-WebRequestCompat {
     }
 
     Invoke-WebRequest @params
+}
+
+function Normalize-Version {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return ''
+    }
+
+    return $Value.Trim().TrimStart('v')
+}
+
+function Convert-VersionToTag {
+    param([string]$Value)
+
+    $normalized = Normalize-Version $Value
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return ''
+    }
+
+    return "v$normalized"
 }
 
 function Get-TargetMode {
@@ -97,23 +119,70 @@ function Get-InstallTargets {
     return $targets
 }
 
+function Get-BranchVersion {
+    param([string]$Repo)
+
+    try {
+        $url = "https://raw.githubusercontent.com/$Repo/$Branch/bitrix/VERSION"
+        return (Invoke-WebRequestCompat -Uri $url).Content.Trim()
+    }
+    catch {
+        return ''
+    }
+}
+
+function Get-LatestReleaseTag {
+    param([string]$Repo)
+
+    try {
+        $response = Invoke-WebRequestCompat -Uri "https://github.com/$Repo/releases/latest"
+        $uri = $response.BaseResponse.ResponseUri.AbsoluteUri
+        if ($uri -match '/releases/tag/(?<tag>[^/]+)$') {
+            return $Matches.tag
+        }
+    }
+    catch {
+    }
+
+    return ''
+}
+
 function Resolve-RemoteRepo {
+    param([string]$RequestedVersion)
+
     foreach ($repo in $RepoCandidates) {
-        $url = "https://raw.githubusercontent.com/$repo/$Branch/bitrix/VERSION"
-        try {
-            $version = (Invoke-WebRequestCompat -Uri $url).Content.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($version)) {
+        $branchVersion = Get-BranchVersion -Repo $repo
+
+        if (-not [string]::IsNullOrWhiteSpace($RequestedVersion)) {
+            if (-not [string]::IsNullOrWhiteSpace($branchVersion)) {
                 return @{
                     Repo = $repo
-                    Version = $version
+                    Version = (Normalize-Version $RequestedVersion)
+                    Tag = (Convert-VersionToTag $RequestedVersion)
                 }
             }
+            continue
         }
-        catch {
+
+        $latestTag = Get-LatestReleaseTag -Repo $repo
+        if (-not [string]::IsNullOrWhiteSpace($latestTag)) {
+            return @{
+                Repo = $repo
+                Version = (Normalize-Version $latestTag)
+                Tag = $latestTag
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($branchVersion)) {
+            return @{
+                Repo = $repo
+                Version = (Normalize-Version $branchVersion)
+                Tag = (Convert-VersionToTag $branchVersion)
+            }
         }
     }
 
-    throw 'Could not fetch remote version from current or legacy repository slug.'
+    throw 'Could not resolve repository or target version.'
 }
 
 function Get-InstalledVersion {
@@ -127,16 +196,49 @@ function Get-InstalledVersion {
     return ''
 }
 
+function Download-Archive {
+    param(
+        [Parameter(Mandatory = $true)][string]$Repo,
+        [Parameter(Mandatory = $true)][string]$OutputPath,
+        [string]$ReleaseTag,
+        [switch]$ExplicitVersion
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ReleaseTag)) {
+        $tagUrl = "https://github.com/$Repo/archive/refs/tags/$ReleaseTag.zip"
+        try {
+            Invoke-WebRequestCompat -Uri $tagUrl -OutFile $OutputPath | Out-Null
+            return "release:$ReleaseTag"
+        }
+        catch {
+            if ($ExplicitVersion) {
+                throw "Could not download release archive $ReleaseTag from $Repo."
+            }
+
+            Write-Warn "Could not download release archive $ReleaseTag. Falling back to $Branch."
+        }
+    }
+
+    $branchUrl = "https://github.com/$Repo/archive/refs/heads/$Branch.zip"
+    Invoke-WebRequestCompat -Uri $branchUrl -OutFile $OutputPath | Out-Null
+    return "branch:$Branch"
+}
+
+$requestedVersion = Normalize-Version $Version
 $targetMode = Get-TargetMode
 $targets = Get-InstallTargets -Mode $targetMode
 
 Write-Step 'Checking versions'
 
-$remoteMeta = Resolve-RemoteRepo
+$remoteMeta = Resolve-RemoteRepo -RequestedVersion $requestedVersion
 $repo = $remoteMeta.Repo
 $remoteVersion = $remoteMeta.Version
+$releaseTag = $remoteMeta.Tag
 Write-Ok "Resolved repository: $repo"
-Write-Ok "Remote version: $remoteVersion"
+Write-Ok "Target version: $remoteVersion"
+if (-not [string]::IsNullOrWhiteSpace($releaseTag)) {
+    Write-Ok "Preferred release tag: $releaseTag"
+}
 
 $requiresInstall = $false
 
@@ -161,14 +263,13 @@ if (-not $requiresInstall) {
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-agent-skill-" + [guid]::NewGuid().ToString('N'))
 $zipPath = Join-Path $tempRoot 'skill.zip'
-$zipUrl = "https://github.com/$repo/archive/refs/heads/$Branch.zip"
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
     Write-Step 'Downloading'
-    Invoke-WebRequestCompat -Uri $zipUrl -OutFile $zipPath | Out-Null
-    Write-Ok 'Downloaded'
+    $archiveSource = Download-Archive -Repo $repo -OutputPath $zipPath -ReleaseTag $releaseTag -ExplicitVersion:([bool]$requestedVersion)
+    Write-Ok "Downloaded from $archiveSource"
 
     Expand-Archive -LiteralPath $zipPath -DestinationPath $tempRoot -Force
     $extractedDir = Get-ChildItem -LiteralPath $tempRoot -Directory |
@@ -219,6 +320,7 @@ try {
     foreach ($target in $targets) {
         Write-Host "  - $($target.Name): $($target.Path)"
     }
+    Write-Host "Source: $archiveSource"
     Write-Host 'Usage: /bitrix <your task>'
 }
 finally {

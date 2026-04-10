@@ -11,7 +11,7 @@ Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Cod
 
 ### macOS / Linux
 
-1. Установи навык.
+1. Установи последнюю release-версию навыка.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash
@@ -25,7 +25,13 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --both
 ```
 
-3. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
+3. Установи конкретную release-версию:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.5.0 --claude
+```
+
+4. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
 
 ```bash
 bash ~/.claude/skills/bitrix/allow-update.sh
@@ -33,7 +39,7 @@ bash ~/.claude/skills/bitrix/allow-update.sh
 
 ### Windows (PowerShell)
 
-1. Установи навык.
+1. Установи последнюю release-версию навыка.
 
 ```powershell
 irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1 | iex
@@ -47,7 +53,13 @@ irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Both
 ```
 
-3. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
+3. Установи конкретную release-версию:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.5.0 -Claude
+```
+
+4. Чтобы Claude мог запускать апдейтер без лишних запросов на разрешение, выполни:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-update.ps1"
@@ -61,6 +73,8 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-upda
 /bitrix <ваша задача>
 ```
 
+Если навык не появился сразу, перезапусти агент один раз.
+
 ## Обновление
 
 ### macOS / Linux
@@ -69,10 +83,12 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-upda
 bash ~/.claude/skills/bitrix/update.sh
 bash ~/.claude/skills/bitrix/update.sh --force
 bash ~/.claude/skills/bitrix/update.sh --check
+bash ~/.claude/skills/bitrix/update.sh --version 1.5.0
 
-bash ~/.codex/skills/bitrix/update.sh
-bash ~/.codex/skills/bitrix/update.sh --force
-bash ~/.codex/skills/bitrix/update.sh --check
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/update.sh"
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/update.sh" --force
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/update.sh" --check
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/update.sh" --version 1.5.0
 ```
 
 ### Windows (PowerShell)
@@ -81,13 +97,52 @@ bash ~/.codex/skills/bitrix/update.sh --check
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1"
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Force
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Check
+powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Version 1.5.0
 
-powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1"
-powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1" -Force
-powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1" -Check
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\update.ps1')
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\update.ps1') -Force
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\update.ps1') -Check
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\update.ps1') -Version 1.5.0
 ```
 
 Начиная с версии `1.3.7`, при первом содержательном обращении к `/bitrix` навык должен сначала выполнить такую проверку и, если версия выросла, предложить обновление в явной форме: `Обновилась версия скилла с X до Y. Давай обновим?`
+
+## Версии
+
+### macOS / Linux
+
+```bash
+bash ~/.claude/skills/bitrix/versions.sh
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/versions.sh"
+```
+
+### Windows (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\versions.ps1"
+
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\versions.ps1')
+```
+
+## Удаление
+
+### macOS / Linux
+
+```bash
+bash ~/.claude/skills/bitrix/uninstall.sh
+bash "${CODEX_HOME:-$HOME/.codex}/skills/bitrix/uninstall.sh"
+```
+
+### Windows (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\uninstall.ps1"
+
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skills') 'bitrix\uninstall.ps1')
+```
 
 ## Как это работает
 

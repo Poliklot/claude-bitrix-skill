@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-04-10
+
+### Added
+- `bitrix/versions.sh` и `bitrix/versions.ps1` — просмотр доступных release-версий навыка
+- `bitrix/uninstall.sh` и `bitrix/uninstall.ps1` — удаление установленной копии навыка для `Claude` и `Codex`
+- поддержка установки и обновления конкретной версии через `--version` и `-Version`
+
+### Changed
+- `install.sh` и `install.ps1` теперь в первую очередь ставят навык из release/tag-архива, а не из branch tarball
+- `bitrix/update.sh` и `bitrix/update.ps1` теперь умеют обновлять и откатывать навык на конкретную release-версию
+- `README.md` дополнен полноценным lifecycle: установка, обновление, просмотр версий, удаление и пути с учётом `$CODEX_HOME`
+
 ## [1.5.1] — 2026-04-10
 
 ### Changed
@@ -118,7 +130,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.4.0...v1.4.1

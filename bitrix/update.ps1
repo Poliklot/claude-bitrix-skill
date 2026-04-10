@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
-    [switch]$Check
+    [switch]$Check,
+    [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,23 +31,91 @@ function Invoke-WebRequestCompat {
     Invoke-WebRequest @params
 }
 
+function Normalize-Version {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return ''
+    }
+
+    return $Value.Trim().TrimStart('v')
+}
+
+function Convert-VersionToTag {
+    param([string]$Value)
+
+    $normalized = Normalize-Version $Value
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return ''
+    }
+
+    return "v$normalized"
+}
+
+function Get-BranchVersion {
+    param([string]$Repo)
+
+    try {
+        $url = "https://raw.githubusercontent.com/$Repo/$Branch/bitrix/VERSION"
+        return (Invoke-WebRequestCompat -Uri $url).Content.Trim()
+    }
+    catch {
+        return ''
+    }
+}
+
+function Get-LatestReleaseTag {
+    param([string]$Repo)
+
+    try {
+        $response = Invoke-WebRequestCompat -Uri "https://github.com/$Repo/releases/latest"
+        $uri = $response.BaseResponse.ResponseUri.AbsoluteUri
+        if ($uri -match '/releases/tag/(?<tag>[^/]+)$') {
+            return $Matches.tag
+        }
+    }
+    catch {
+    }
+
+    return ''
+}
+
 function Resolve-RemoteRepo {
+    param([string]$RequestedVersion)
+
     foreach ($repo in $RepoCandidates) {
-        $url = "https://raw.githubusercontent.com/$repo/$Branch/bitrix/VERSION"
-        try {
-            $version = (Invoke-WebRequestCompat -Uri $url).Content.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($version)) {
+        $branchVersion = Get-BranchVersion -Repo $repo
+
+        if (-not [string]::IsNullOrWhiteSpace($RequestedVersion)) {
+            if (-not [string]::IsNullOrWhiteSpace($branchVersion)) {
                 return @{
                     Repo = $repo
-                    Version = $version
+                    Version = (Normalize-Version $RequestedVersion)
+                    Ref = (Convert-VersionToTag $RequestedVersion)
                 }
             }
+            continue
         }
-        catch {
+
+        $latestTag = Get-LatestReleaseTag -Repo $repo
+        if (-not [string]::IsNullOrWhiteSpace($latestTag)) {
+            return @{
+                Repo = $repo
+                Version = (Normalize-Version $latestTag)
+                Ref = $latestTag
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($branchVersion)) {
+            return @{
+                Repo = $repo
+                Version = (Normalize-Version $branchVersion)
+                Ref = $Branch
+            }
         }
     }
 
-    throw 'Could not fetch remote version from current or legacy repository slug.'
+    throw 'Could not resolve repository or target version.'
 }
 
 function Get-LocalVersion {
@@ -58,13 +127,13 @@ function Get-LocalVersion {
 }
 
 function Convert-ToComparableVersion {
-    param([string]$Version)
+    param([string]$VersionValue)
 
-    if ([string]::IsNullOrWhiteSpace($Version)) {
+    if ([string]::IsNullOrWhiteSpace($VersionValue)) {
         return [version]'0.0.0.0'
     }
 
-    $parts = $Version.Trim().TrimStart('v').Split('.')
+    $parts = $VersionValue.Trim().TrimStart('v').Split('.')
     while ($parts.Count -lt 4) {
         $parts += '0'
     }
@@ -104,10 +173,12 @@ function Get-TargetMode {
 }
 
 function Invoke-CheckMode {
+    param([string]$RequestedVersion)
+
     $localVersion = Get-LocalVersion
 
     try {
-        $remoteMeta = Resolve-RemoteRepo
+        $remoteMeta = Resolve-RemoteRepo -RequestedVersion $RequestedVersion
     }
     catch {
         Write-Output 'CHECK_FAILED reason=remote_version_unavailable'
@@ -129,16 +200,19 @@ function Invoke-CheckMode {
     Write-Output "UP_TO_DATE version=$localVersion"
 }
 
+$requestedVersion = Normalize-Version $Version
+
 if ($Check) {
-    Invoke-CheckMode
+    Invoke-CheckMode -RequestedVersion $requestedVersion
     exit 0
 }
 
 Write-Host 'Checking versions'
 
-$remoteMeta = Resolve-RemoteRepo
+$remoteMeta = Resolve-RemoteRepo -RequestedVersion $requestedVersion
 $repo = $remoteMeta.Repo
 $remoteVersion = $remoteMeta.Version
+$installRef = $remoteMeta.Ref
 $localVersion = Get-LocalVersion
 
 if (-not $Force) {
@@ -155,28 +229,34 @@ if (-not $Force) {
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-agent-skill-update-" + [guid]::NewGuid().ToString('N'))
 $tempScriptPath = Join-Path $tempRoot 'install.ps1'
-$installScriptUrl = "https://raw.githubusercontent.com/$repo/$Branch/install.ps1"
+$installScriptUrl = "https://raw.githubusercontent.com/$repo/$installRef/install.ps1"
 $targetMode = Get-TargetMode
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
-    Write-Host 'Fetching latest installer from GitHub...'
+    Write-Host 'Fetching installer from GitHub...'
     Invoke-WebRequestCompat -Uri $installScriptUrl -OutFile $tempScriptPath | Out-Null
 
     $installScript = [scriptblock]::Create((Get-Content -LiteralPath $tempScriptPath -Raw))
+    $args = @()
 
     switch ($targetMode) {
-        'claude' {
-            if ($Force) { & $installScript -Claude -Force } else { & $installScript -Claude }
-        }
-        'codex' {
-            if ($Force) { & $installScript -Codex -Force } else { & $installScript -Codex }
-        }
-        default {
-            if ($Force) { & $installScript -Auto -Force } else { & $installScript -Auto }
-        }
+        'claude' { $args += '-Claude' }
+        'codex' { $args += '-Codex' }
+        default { $args += '-Auto' }
     }
+
+    if ($Force) {
+        $args += '-Force'
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($requestedVersion)) {
+        $args += '-Version'
+        $args += $requestedVersion
+    }
+
+    & $installScript @args
 }
 finally {
     if (Test-Path -LiteralPath $tempRoot) {
