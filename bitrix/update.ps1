@@ -6,10 +6,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$Repo = 'Poliklot/claude-bitrix-skill'
+$RepoCandidates = @(
+    'Poliklot/bitrix-agent-skill',
+    'Poliklot/claude-bitrix-skill'
+)
 $Branch = 'master'
-$InstallScriptUrl = "https://raw.githubusercontent.com/$Repo/$Branch/install.ps1"
-$RemoteVersionUrl = "https://raw.githubusercontent.com/$Repo/$Branch/bitrix/VERSION"
 $LocalVersionFile = Join-Path $PSScriptRoot 'VERSION'
 
 function Invoke-WebRequestCompat {
@@ -29,16 +30,31 @@ function Invoke-WebRequestCompat {
     Invoke-WebRequest @params
 }
 
+function Resolve-RemoteRepo {
+    foreach ($repo in $RepoCandidates) {
+        $url = "https://raw.githubusercontent.com/$repo/$Branch/bitrix/VERSION"
+        try {
+            $version = (Invoke-WebRequestCompat -Uri $url).Content.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($version)) {
+                return @{
+                    Repo = $repo
+                    Version = $version
+                }
+            }
+        }
+        catch {
+        }
+    }
+
+    throw 'Could not fetch remote version from current or legacy repository slug.'
+}
+
 function Get-LocalVersion {
     if (Test-Path -LiteralPath $LocalVersionFile) {
         return (Get-Content -LiteralPath $LocalVersionFile -Raw).Trim()
     }
 
     return ''
-}
-
-function Get-RemoteVersion {
-    return (Invoke-WebRequestCompat -Uri $RemoteVersionUrl).Content.Trim()
 }
 
 function Convert-ToComparableVersion {
@@ -70,17 +86,35 @@ function Test-VersionGreater {
     return (Convert-ToComparableVersion $Left) -gt (Convert-ToComparableVersion $Right)
 }
 
+function Get-TargetMode {
+    $normalizedPath = $PSScriptRoot -replace '\\', '/'
+    $codexRoot = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+    $codexSkillPath = (Join-Path (Join-Path $codexRoot 'skills') 'bitrix') -replace '\\', '/'
+    $claudeSkillPath = (Join-Path (Join-Path (Join-Path $HOME '.claude') 'skills') 'bitrix') -replace '\\', '/'
+
+    if ($normalizedPath -eq $codexSkillPath -or $normalizedPath -like '*/.codex/skills/bitrix') {
+        return 'codex'
+    }
+
+    if ($normalizedPath -eq $claudeSkillPath -or $normalizedPath -like '*/.claude/skills/bitrix') {
+        return 'claude'
+    }
+
+    return 'auto'
+}
+
 function Invoke-CheckMode {
     $localVersion = Get-LocalVersion
-    $remoteVersion = ''
 
     try {
-        $remoteVersion = Get-RemoteVersion
+        $remoteMeta = Resolve-RemoteRepo
     }
     catch {
         Write-Output 'CHECK_FAILED reason=remote_version_unavailable'
         return
     }
+
+    $remoteVersion = $remoteMeta.Version
 
     if ([string]::IsNullOrWhiteSpace($localVersion)) {
         Write-Output "UPDATE_AVAILABLE local=none remote=$remoteVersion"
@@ -102,11 +136,9 @@ if ($Check) {
 
 Write-Host 'Checking versions'
 
-$remoteVersion = Get-RemoteVersion
-if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
-    throw 'Could not fetch remote version.'
-}
-
+$remoteMeta = Resolve-RemoteRepo
+$repo = $remoteMeta.Repo
+$remoteVersion = $remoteMeta.Version
 $localVersion = Get-LocalVersion
 
 if (-not $Force) {
@@ -121,22 +153,29 @@ if (-not $Force) {
     }
 }
 
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-skill-update-" + [guid]::NewGuid().ToString('N'))
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-agent-skill-update-" + [guid]::NewGuid().ToString('N'))
 $tempScriptPath = Join-Path $tempRoot 'install.ps1'
+$installScriptUrl = "https://raw.githubusercontent.com/$repo/$Branch/install.ps1"
+$targetMode = Get-TargetMode
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
     Write-Host 'Fetching latest installer from GitHub...'
-    Invoke-WebRequestCompat -Uri $InstallScriptUrl -OutFile $tempScriptPath | Out-Null
+    Invoke-WebRequestCompat -Uri $installScriptUrl -OutFile $tempScriptPath | Out-Null
 
     $installScript = [scriptblock]::Create((Get-Content -LiteralPath $tempScriptPath -Raw))
 
-    if ($Force) {
-        & $installScript -Force
-    }
-    else {
-        & $installScript
+    switch ($targetMode) {
+        'claude' {
+            if ($Force) { & $installScript -Claude -Force } else { & $installScript -Claude }
+        }
+        'codex' {
+            if ($Force) { & $installScript -Codex -Force } else { & $installScript -Codex }
+        }
+        default {
+            if ($Force) { & $installScript -Auto -Force } else { & $installScript -Auto }
+        }
     }
 }
 finally {

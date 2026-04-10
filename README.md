@@ -1,20 +1,35 @@
-# Навык Bitrix для Claude Code
+# Bitrix Agent Skill
 
-Навык Claude Code для разработки на 1C-Bitrix CMS. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, блог, форум, голосования, формы, лендинги, соц-авторизацию, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
+Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Code` и `Codex`. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, блог, форум, голосования, формы, лендинги, соц-авторизацию, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
 
 ## Установка
 
-Навык ставится в домашнюю папку пользователя, в директорию `.claude/skills/bitrix`.
+Навык ставится в домашнюю папку пользователя:
+
+- `Claude Code` — `~/.claude/skills/bitrix`
+- `Codex` — `$CODEX_HOME/skills/bitrix` или `~/.codex/skills/bitrix`
+
+До фактического rename репозитория bootstrap URL ещё остаётся старым `claude-bitrix-skill`, но сами install/update-скрипты уже готовы к переходу на `bitrix-agent-skill`: сначала ищут новый slug, потом legacy slug.
 
 ### macOS / Linux
 
-1. Установи навык:
+1. Установи навык.
+
+По умолчанию installer работает в режиме `auto`: ставит навык во все найденные home-контуры Claude/Codex.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.sh | bash
 ```
 
-2. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
+2. Если хочешь поставить только в один контур, используй флаги:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.sh | bash -s -- --claude
+curl -fsSL https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.sh | bash -s -- --codex
+curl -fsSL https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.sh | bash -s -- --both
+```
+
+3. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
 
 ```bash
 bash ~/.claude/skills/bitrix/allow-update.sh
@@ -22,19 +37,27 @@ bash ~/.claude/skills/bitrix/allow-update.sh
 
 ### Windows (PowerShell)
 
-1. Установи навык:
+1. Установи навык.
 
 ```powershell
 irm https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.ps1 | iex
 ```
 
-2. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
+2. Если хочешь выбрать только один контур, можно вызвать bootstrap-скрипт так:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.ps1))) -Claude
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.ps1))) -Codex
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/claude-bitrix-skill/master/install.ps1))) -Both
+```
+
+3. Если хочешь, чтобы Claude сам запускал апдейтер без лишних запросов на разрешение, включи это одной командой:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-update.ps1"
 ```
 
-Оба helper-скрипта добавляют разрешения глобально в `~/.claude/settings.json`, а не в проект.
+Оба helper-скрипта относятся только к `Claude`: они добавляют разрешения глобально в `~/.claude/settings.json`, а не в проект.
 
 ### После установки
 
@@ -52,6 +75,10 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\allow-upda
 bash ~/.claude/skills/bitrix/update.sh
 bash ~/.claude/skills/bitrix/update.sh --force
 bash ~/.claude/skills/bitrix/update.sh --check
+
+bash ~/.codex/skills/bitrix/update.sh
+bash ~/.codex/skills/bitrix/update.sh --force
+bash ~/.codex/skills/bitrix/update.sh --check
 ```
 
 ### Windows (PowerShell)
@@ -60,6 +87,10 @@ bash ~/.claude/skills/bitrix/update.sh --check
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1"
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Force
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Check
+
+powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1"
+powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1" -Force
+powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\bitrix\update.ps1" -Check
 ```
 
 Начиная с версии `1.3.7`, при первом содержательном обращении к `/bitrix` навык должен сначала выполнить такую проверку и, если версия выросла, предложить обновление в явной форме: `Обновилась версия скилла с X до Y. Давай обновим?`
@@ -134,7 +165,7 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1
 
 ## Требования
 
-- Claude Code
+- Claude Code или Codex
 - 1C-Bitrix CMS 23+
 
 ## Лицензия

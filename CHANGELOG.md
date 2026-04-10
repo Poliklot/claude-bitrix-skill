@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-04-10
+
+### Added
+- dual-target install/update flow для `Claude Code` и `Codex`
+- автоматическое определение текущего и legacy slug репозитория: сначала `bitrix-agent-skill`, затем `claude-bitrix-skill`
+- флаги таргетинга installer-ов: `--claude/--codex/--both` и `-Claude/-Codex/-Both`
+
+### Changed
+- `README.md` переведён из Claude-only документации в общий формат `Bitrix Agent Skill` для двух агентов
+- `bitrix/SKILL.md` обновлён под совместимость с `Claude Code` и `Codex`
+- `install.sh`, `install.ps1`, `bitrix/update.sh`, `bitrix/update.ps1` отвязаны от жёсткой привязки к старому slug и готовы к rename репозитория
+- PowerShell installer больше не зависит от шаблона архива `claude-bitrix-skill-*`
+- `PLAN.md` синхронизирован с текущей версией и rename-safe install/update слоем
+
 ## [1.4.1] — 2026-04-10
 
 ### Added
@@ -97,7 +111,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.11...v1.4.0
 [1.3.11]: https://github.com/Poliklot/claude-bitrix-skill/compare/v1.3.10...v1.3.11

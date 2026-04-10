@@ -1,15 +1,23 @@
 [CmdletBinding()]
 param(
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Claude,
+    [switch]$Codex,
+    [switch]$Both,
+    [switch]$Auto
 )
 
 $ErrorActionPreference = 'Stop'
 
-$Repo = 'Poliklot/claude-bitrix-skill'
+$RepoCandidates = @(
+    'Poliklot/bitrix-agent-skill',
+    'Poliklot/claude-bitrix-skill'
+)
 $Branch = 'master'
-$InstallDir = Join-Path (Join-Path (Join-Path $HOME '.claude') 'skills') 'bitrix'
-$RemoteVersionUrl = "https://raw.githubusercontent.com/$Repo/$Branch/bitrix/VERSION"
-$ZipUrl = "https://github.com/$Repo/archive/refs/heads/$Branch.zip"
+
+$ClaudeInstallDir = Join-Path (Join-Path (Join-Path $HOME '.claude') 'skills') 'bitrix'
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+$CodexInstallDir = Join-Path (Join-Path $CodexHome 'skills') 'bitrix'
 
 function Write-Step {
     param([string]$Message)
@@ -43,49 +51,128 @@ function Invoke-WebRequestCompat {
     Invoke-WebRequest @params
 }
 
+function Get-TargetMode {
+    if ($Both) { return 'both' }
+    if ($Claude -and $Codex) { return 'both' }
+    if ($Claude) { return 'claude' }
+    if ($Codex) { return 'codex' }
+    if ($Auto) { return 'auto' }
+    return 'auto'
+}
+
+function Get-InstallTargets {
+    param([string]$Mode)
+
+    $targets = @()
+
+    switch ($Mode) {
+        'claude' {
+            $targets += @{ Name = 'Claude'; Path = $ClaudeInstallDir }
+        }
+        'codex' {
+            $targets += @{ Name = 'Codex'; Path = $CodexInstallDir }
+        }
+        'both' {
+            $targets += @{ Name = 'Claude'; Path = $ClaudeInstallDir }
+            $targets += @{ Name = 'Codex'; Path = $CodexInstallDir }
+        }
+        'auto' {
+            if (Test-Path -LiteralPath (Join-Path $HOME '.claude')) {
+                $targets += @{ Name = 'Claude'; Path = $ClaudeInstallDir }
+            }
+            if ($env:CODEX_HOME -or (Test-Path -LiteralPath (Join-Path $HOME '.codex'))) {
+                $targets += @{ Name = 'Codex'; Path = $CodexInstallDir }
+            }
+            if ($targets.Count -eq 0) {
+                Write-Warn 'Claude/Codex homes were not detected. Defaulting to both install paths.'
+                $targets += @{ Name = 'Claude'; Path = $ClaudeInstallDir }
+                $targets += @{ Name = 'Codex'; Path = $CodexInstallDir }
+            }
+        }
+        default {
+            throw "Unknown target mode: $Mode"
+        }
+    }
+
+    return $targets
+}
+
+function Resolve-RemoteRepo {
+    foreach ($repo in $RepoCandidates) {
+        $url = "https://raw.githubusercontent.com/$repo/$Branch/bitrix/VERSION"
+        try {
+            $version = (Invoke-WebRequestCompat -Uri $url).Content.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($version)) {
+                return @{
+                    Repo = $repo
+                    Version = $version
+                }
+            }
+        }
+        catch {
+        }
+    }
+
+    throw 'Could not fetch remote version from current or legacy repository slug.'
+}
+
+function Get-InstalledVersion {
+    param([string]$InstallDir)
+
+    $versionFile = Join-Path $InstallDir 'VERSION'
+    if (Test-Path -LiteralPath $versionFile) {
+        return (Get-Content -LiteralPath $versionFile -Raw).Trim()
+    }
+
+    return ''
+}
+
+$targetMode = Get-TargetMode
+$targets = Get-InstallTargets -Mode $targetMode
+
 Write-Step 'Checking versions'
 
-$remoteVersion = (Invoke-WebRequestCompat -Uri $RemoteVersionUrl).Content.Trim()
-if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
-    throw 'Could not fetch remote version.'
-}
+$remoteMeta = Resolve-RemoteRepo
+$repo = $remoteMeta.Repo
+$remoteVersion = $remoteMeta.Version
+Write-Ok "Resolved repository: $repo"
 Write-Ok "Remote version: $remoteVersion"
 
-$localVersionFile = Join-Path $InstallDir 'VERSION'
-$localVersion = ''
-if (Test-Path -LiteralPath $localVersionFile) {
-    $localVersion = (Get-Content -LiteralPath $localVersionFile -Raw).Trim()
-    Write-Ok "Installed version: $localVersion"
-}
-else {
-    Write-Warn 'No installed version found.'
+$requiresInstall = $false
+
+foreach ($target in $targets) {
+    $localVersion = Get-InstalledVersion -InstallDir $target.Path
+    if ([string]::IsNullOrWhiteSpace($localVersion)) {
+        Write-Warn "$($target.Name): no installed version found"
+    }
+    else {
+        Write-Ok "$($target.Name): installed $localVersion"
+    }
+
+    if ($Force -or $localVersion -ne $remoteVersion) {
+        $requiresInstall = $true
+    }
 }
 
-if (-not $Force -and $localVersion -eq $remoteVersion) {
+if (-not $requiresInstall) {
     Write-Host "`nAlready up to date. ($remoteVersion)" -ForegroundColor Green
     exit 0
 }
 
-if (-not [string]::IsNullOrWhiteSpace($localVersion) -and $localVersion -ne $remoteVersion) {
-    Write-Step "Updating $localVersion -> $remoteVersion"
-}
-else {
-    Write-Step "Installing version $remoteVersion"
-}
-
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-skill-" + [guid]::NewGuid().ToString('N'))
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bitrix-agent-skill-" + [guid]::NewGuid().ToString('N'))
 $zipPath = Join-Path $tempRoot 'skill.zip'
+$zipUrl = "https://github.com/$repo/archive/refs/heads/$Branch.zip"
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
     Write-Step 'Downloading'
-    Invoke-WebRequestCompat -Uri $ZipUrl -OutFile $zipPath | Out-Null
+    Invoke-WebRequestCompat -Uri $zipUrl -OutFile $zipPath | Out-Null
     Write-Ok 'Downloaded'
 
     Expand-Archive -LiteralPath $zipPath -DestinationPath $tempRoot -Force
     $extractedDir = Get-ChildItem -LiteralPath $tempRoot -Directory |
-        Where-Object { $_.Name -like 'claude-bitrix-skill-*' } |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bitrix') } |
         Select-Object -First 1
 
     if ($null -eq $extractedDir) {
@@ -93,29 +180,45 @@ try {
     }
 
     $skillSource = Join-Path $extractedDir.FullName 'bitrix'
-    if (-not (Test-Path -LiteralPath $skillSource)) {
-        throw 'Unexpected zip structure: bitrix directory not found.'
-    }
     Write-Ok 'Extracted'
 
-    Write-Step "Installing to $InstallDir"
-    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+    foreach ($target in $targets) {
+        $localVersion = Get-InstalledVersion -InstallDir $target.Path
 
-    Get-ChildItem -LiteralPath $InstallDir -Force -ErrorAction SilentlyContinue |
-        Remove-Item -Recurse -Force
-
-    Get-ChildItem -LiteralPath $skillSource -Force |
-        ForEach-Object {
-            Copy-Item -LiteralPath $_.FullName -Destination $InstallDir -Recurse -Force
+        if (-not $Force -and $localVersion -eq $remoteVersion) {
+            Write-Ok "$($target.Name): already up to date, skipping"
+            continue
         }
-    Write-Ok 'Files copied'
 
-    $installedVersion = (Get-Content -LiteralPath (Join-Path $InstallDir 'VERSION') -Raw).Trim()
-    if ($installedVersion -ne $remoteVersion) {
-        throw "Version mismatch after install: expected $remoteVersion, got $installedVersion"
+        if (-not [string]::IsNullOrWhiteSpace($localVersion) -and $localVersion -ne $remoteVersion) {
+            Write-Step "$($target.Name): updating $localVersion -> $remoteVersion"
+        }
+        else {
+            Write-Step "$($target.Name): installing $remoteVersion"
+        }
+
+        New-Item -ItemType Directory -Path $target.Path -Force | Out-Null
+        Get-ChildItem -LiteralPath $target.Path -Force -ErrorAction SilentlyContinue |
+            Remove-Item -Recurse -Force
+
+        Get-ChildItem -LiteralPath $skillSource -Force |
+            ForEach-Object {
+                Copy-Item -LiteralPath $_.FullName -Destination $target.Path -Recurse -Force
+            }
+
+        $installedVersion = Get-InstalledVersion -InstallDir $target.Path
+        if ($installedVersion -ne $remoteVersion) {
+            throw "$($target.Name): version mismatch after install"
+        }
+
+        Write-Ok "$($target.Name): files copied to $($target.Path)"
     }
 
-    Write-Host "`nSuccess! Bitrix skill $remoteVersion installed at $InstallDir" -ForegroundColor Green
+    Write-Host "`nSuccess! Bitrix Agent Skill $remoteVersion installed" -ForegroundColor Green
+    Write-Host 'Targets:'
+    foreach ($target in $targets) {
+        Write-Host "  - $($target.Name): $($target.Path)"
+    }
     Write-Host 'Usage: /bitrix <your task>'
 }
 finally {

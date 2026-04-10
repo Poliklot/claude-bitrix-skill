@@ -3,8 +3,8 @@ name: bitrix
 description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, blog, forum, vote, forms, landing, social auth, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.4.1"
-compatibility: Designed for Claude Code on 1C-Bitrix CMS projects
+  version: "1.5.0"
+compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 ---
 
 # Bitrix Expert Skill
@@ -39,13 +39,14 @@ compatibility: Designed for Claude Code on 1C-Bitrix CMS projects
 
 При первом содержательном обращении к `/bitrix` в текущем диалоге:
 
-1. Если доступен `~/.claude/skills/bitrix/update.sh`, сначала выполни `bash ~/.claude/skills/bitrix/update.sh --check`.
-2. Если задача выполняется в Windows/PowerShell и доступен `~/.claude/skills/bitrix/update.ps1`, вместо bash-варианта выполни `powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\bitrix\update.ps1" -Check`.
-3. Если любой из скриптов вернул `UPDATE_AVAILABLE local=X remote=Y`, прежде чем идти в задачу, скажи пользователю именно так: `Обновилась версия скилла с X до Y. Давай обновим?`
-4. Не заменяй это расплывчатой фразой вроде “локальная версия может быть устаревшей”.
-5. Если пользователь согласился, запускай нативный для его ОС апдейтер, а после обновления продолжай задачу.
-6. Если скрипт вернул `UP_TO_DATE ...`, `CHECK_FAILED ...` или недоступен сам файл, продолжай молча и не зашумляй ответ.
-7. В рамках одного диалога не повторяй это предложение снова, если пользователь уже отказался или обновление уже выполнено.
+1. Если навык запущен в Codex и доступен `~/.codex/skills/bitrix/update.sh` или `$CODEX_HOME/skills/bitrix/update.sh`, сначала выполни его с `--check`.
+2. Если навык запущен в Claude и доступен `~/.claude/skills/bitrix/update.sh`, сначала выполни его с `--check`.
+3. В Windows/PowerShell используй установленный рядом `update.ps1` в `~/.codex/skills/bitrix/` или `~/.claude/skills/bitrix/`, в зависимости от агента.
+4. Если любой из скриптов вернул `UPDATE_AVAILABLE local=X remote=Y`, прежде чем идти в задачу, скажи пользователю именно так: `Обновилась версия скилла с X до Y. Давай обновим?`
+5. Не заменяй это расплывчатой фразой вроде “локальная версия может быть устаревшей”.
+6. Если пользователь согласился, запускай нативный для его ОС апдейтер из того же контура, где сейчас работает навык, а после обновления продолжай задачу.
+7. Если скрипт вернул `UP_TO_DATE ...`, `CHECK_FAILED ...` или недоступен сам файл, продолжай молча и не зашумляй ответ.
+8. В рамках одного диалога не повторяй это предложение снова, если пользователь уже отказался или обновление уже выполнено.
 
 ## Быстрые проверки ядра
 

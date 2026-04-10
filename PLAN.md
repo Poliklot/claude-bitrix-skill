@@ -7,7 +7,7 @@
 ## Текущий статус
 
 На дату этого плана:
-- актуальная версия навыка: `1.3.6`;
+- актуальная версия навыка: `1.5.0`;
 - точка входа: `bitrix/SKILL.md`;
 - reference-слой: `bitrix/references/*.md`;
 - все текущие reference-файлы прошли ревизию против установленного core;
@@ -21,13 +21,18 @@
 - `main`
 - `iblock`
 - `blog`
+- `forum`
+- `vote`
 - `form`
+- `landing`
+- `socialservices`
 - `highloadblock`
 - `rest`
 - `search`
 - `seo`
 - `subscribe`
 - `ui`
+- `perfmon`
 - проектные оверрайды в `local/*`
 
 ### Deferred-маршрут
@@ -82,6 +87,7 @@ bitrix-agent-skill/
 
 - `README.md` синхронизирован с текущим покрытием и deferred-доменами.
 - `CHANGELOG.md` отражает актуальную версию и волну core-аудита.
+- install/update слой стал rename-safe для будущего перехода репозитория на `bitrix-agent-skill`.
 - Этот `PLAN.md` переведён из исторического roadmap в living-status документ.
 
 ## Принципы дальнейшей работы

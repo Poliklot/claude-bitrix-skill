@@ -3,6 +3,8 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
+# Claude helper: writes permission rules into ~/.claude/settings.json
+
 $SettingsFile = if ($env:CLAUDE_SETTINGS_FILE) {
     $env:CLAUDE_SETTINGS_FILE
 }

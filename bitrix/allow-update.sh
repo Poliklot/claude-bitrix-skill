@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# allow-update.sh — Enable global permission for running the Bitrix skill updater
+# allow-update.sh — Claude helper: enable global permission for running the Bitrix skill updater
 set -euo pipefail
 
 SETTINGS_FILE="${CLAUDE_SETTINGS_FILE:-${HOME}/.claude/settings.json}"
