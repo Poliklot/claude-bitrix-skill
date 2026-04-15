@@ -1,6 +1,6 @@
 # Bitrix Agent Skill
 
-Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Code` и `Codex`. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, блог, форум, голосования, формы, лендинги, соц-авторизацию, `clouds`, `fileman`, `location`, `messageservice`, `translate`, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
+Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Code` и `Codex`. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, `photogallery`, блог, форум, голосования, формы, лендинги, соц-авторизацию, `clouds`, `fileman`, `location`, `messageservice`, `translate`, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
 
 ## Установка
 
@@ -173,6 +173,7 @@ powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skill
 | `http.md` | Type\DateTime, HttpClient, HttpRequest, HttpResponse |
 | `iblocks.md` | Инфоблоки legacy + D7 ORM, свойства, HL-блоки, события инфоблоков |
 | `highloadblock.md` | Highloadblock: CRUD, compileEntity, dynamic DataManager, права, `highloadblock.*` компоненты, UI EntitySelector |
+| `photogallery.md` | Галереи, альбомы, `USER_ALIAS`, section-UF, upload/watermark, `REAL_PICTURE`, slideshow, photo comments |
 | `iblock-hl-relations.md` | Связи инфоблоков и HL: directory (UF_XML_ID), HL-поля в UF, `_REF` в ORM, AbstractOrmRepository |
 | `custom-uf-types.md` | Кастомные UF-типы (BaseType, onBeforeSave, загрузка файлов), ACF-подходы через HL (Repeater, Group, Flexible Content, глубокая вложенность) |
 | `forum.md` | Форумы: CForumNew, CForumTopic, CForumMessage, права, подписки, стандартные `forum.*` компоненты |
