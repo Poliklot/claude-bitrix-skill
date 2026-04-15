@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-04-15
+
+### Added
+- `bitrix/references/location.md` — отдельный core-first справочник по модулю `location`
+- `bitrix/references/messageservice.md` — отдельный core-first справочник по модулю `messageservice`
+- `bitrix/references/fileman.md` — отдельный core-first справочник по модулю `fileman`
+- `bitrix/references/translate.md` — отдельный core-first справочник по модулю `translate`
+
+### Changed
+- `bitrix/SKILL.md` расширен на подтверждённые активные модули `fileman`, `location`, `messageservice`, `translate` и теперь маршрутизирует задачи в новые reference-файлы
+- `bitrix/references/mail-notifications.md` явно разведён с `messageservice`, чтобы SMS-задачи шли в правильный модульный слой
+- `README.md` синхронизирован с новым покрытием текущего core и дополнен новыми reference-файлами
+
 ## [1.6.0] — 2026-04-10
 
 ### Added
@@ -130,7 +143,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.4.1...v1.5.0

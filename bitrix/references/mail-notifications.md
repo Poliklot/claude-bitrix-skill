@@ -1,6 +1,6 @@
 # Почтовые события и уведомления
 
-> Reference для Bitrix-скилла. Загружай когда задача связана с `CEvent`, `Bitrix\Main\Mail\Event`, шаблонами почтовых событий или перехватом отправки.
+> Reference для Bitrix-скилла. Загружай когда задача связана с `CEvent`, `Bitrix\Main\Mail\Event`, шаблонами почтовых событий или перехватом отправки. Если задача уже про SMS-провайдера, ограничения, callback-и, sender management или REST-интеграцию, дополнительно загружай `messageservice.md`: это отдельный модульный слой, а не просто расширение mail-событий.
 >
 > Audit note: проверено по текущему core `main/lib/mail/event.php`, `main/classes/general/event.php`.
 
@@ -231,6 +231,16 @@ CEventType::Add([
 ```
 
 Дальше создаётся обычный `CEventMessage`, а отправка идёт через тот же `Event::send(...)`.
+
+Но это только слой event-type/event-message. Если вопрос про:
+
+- выбор SMS-провайдера;
+- sender ID и from list;
+- лимиты и ограничения;
+- status callback / result URL;
+- REST-методы по сообщениям;
+
+то реальная точка входа уже `messageservice`, а не только `main/mail`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Bitrix Agent Skill
 
-Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Code` и `Codex`. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, блог, форум, голосования, формы, лендинги, соц-авторизацию, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
+Bitrix Agent Skill для разработки на 1C-Bitrix CMS в `Claude Code` и `Codex`. Текущий audited focus: D7 и legacy API для реально установленного core, включая ORM, компоненты, инфоблоки, блог, форум, голосования, формы, лендинги, соц-авторизацию, `fileman`, `location`, `messageservice`, `translate`, HL-блоки, кеширование, события, REST, поиск, SEO и эксплуатационный контур. Ключевой принцип навыка: сначала читать живое ядро проекта и стандартные компоненты в `www/bitrix`, а не полагаться на память или внешние советы.
 
 ## Установка
 
@@ -168,6 +168,7 @@ powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skill
 | `modules-loader.md` | Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc |
 | `components.md` | CBitrixComponent, шаблоны, кеш компонента, CComponentEngine |
 | `cache-infra.md` | Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path |
+| `fileman.md` | Fileman: HTML editor, address/geo userfields, map/video property types, PDF/player/map компоненты |
 | `http.md` | Type\DateTime, HttpClient, HttpRequest, HttpResponse |
 | `iblocks.md` | Инфоблоки legacy + D7 ORM, свойства, HL-блоки, события инфоблоков |
 | `iblock-hl-relations.md` | Связи инфоблоков и HL: directory (UF_XML_ID), HL-поля в UF, `_REF` в ORM, AbstractOrmRepository |
@@ -175,7 +176,10 @@ powershell -ExecutionPolicy Bypass -File (Join-Path (Join-Path $CodexHome 'skill
 | `forum.md` | Форумы: CForumNew, CForumTopic, CForumMessage, права, подписки, стандартные `forum.*` компоненты |
 | `vote.md` | Опросы и голосования: CVote, CVoteChannel, CVoteQuestion, CVoteAnswer, `voting.*` компоненты |
 | `landing.md` | Лендинги: Site, Landing, Block, Hook, Rights, public URL, `landing.*` компоненты |
+| `location.md` | Геолокации и адреса: LocationService, AddressService, FormatService, location controllers, location ORM |
 | `socialservices.md` | Соц-авторизация: CSocServAuthManager, провайдеры OAuth, UserLinkTable, AuthFlow, `socserv.*` компоненты |
+| `messageservice.md` | MessageService: SMS-провайдеры, Message, SmsManager, ограничения, REST, callback-и, config components |
+| `translate.md` | Translate: lang-файлы, индекс фраз, translate UI, CSV import/export, translate:index, права и panel hooks |
 | `perfmon.md` | Perfmon: SQL/hit/cache diagnostics, схема, индексы, admin-страницы производительности |
 | `sale.md` | Интернет-магазин [deferred]: только при установленном модуле `sale` |
 | `catalog.md` | Торговый каталог [deferred]: только при установленном модуле `catalog` |

@@ -1,9 +1,9 @@
 ---
 name: bitrix
-description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, blog, forum, vote, forms, landing, social auth, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
+description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, blog, forum, vote, forms, landing, social auth, fileman/editor, locations, message service, localization/translate, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.6.0"
+  version: "1.7.0"
 compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 ---
 
@@ -13,7 +13,7 @@ compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 
 ## Текущая фаза
 
-В текущей фазе проекта активным маршрутом считай только то, что подтверждается уже установленным ядром. По аудиту текущего core основной рабочий слой сейчас: `main`, `iblock`, `blog`, `forum`, `vote`, `form`, `landing`, `socialservices`, `highloadblock`, `rest`, `search`, `seo`, `subscribe`, `ui`, `perfmon`, а также проектные `local/*`-оверрайды.
+В текущей фазе проекта активным маршрутом считай только то, что подтверждается уже установленным ядром. По аудиту текущего core основной рабочий слой сейчас: `main`, `iblock`, `blog`, `forum`, `vote`, `form`, `landing`, `socialservices`, `fileman`, `location`, `messageservice`, `translate`, `highloadblock`, `rest`, `search`, `seo`, `subscribe`, `ui`, `perfmon`, а также проектные `local/*`-оверрайды.
 
 Домены `catalog`, `sale`, `bizproc`, `pull` и `socialnet` считай условными. Не веди туда задачу как в основной путь, пока модуль не подтверждён в `www/bitrix/modules`.
 
@@ -127,6 +127,8 @@ if (!Loader::includeModule('iblock')) {
 | Интеграции и обмены | [references/import-export.md](references/import-export.md), [references/http.md](references/http.md), [references/rest.md](references/rest.md), [references/update-stepper.md](references/update-stepper.md), [references/cache-infra.md](references/cache-infra.md) |
 | Админка, сопровождение, фоновые процессы | [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md), [references/update-stepper.md](references/update-stepper.md), [references/entities-migrations.md](references/entities-migrations.md), [references/perfmon.md](references/perfmon.md) |
 | События и кастомная логика | [references/events-routing.md](references/events-routing.md), [references/modules-loader.md](references/modules-loader.md), [references/iblocks.md](references/iblocks.md), [references/users.md](references/users.md) |
+| Адреса, карты, редактор, SMS, геоданные | [references/fileman.md](references/fileman.md), [references/location.md](references/location.md), [references/messageservice.md](references/messageservice.md), [references/mail-notifications.md](references/mail-notifications.md) |
+| Локализация, языковые файлы, экспорт/импорт фраз | [references/translate.md](references/translate.md), [references/import-export.md](references/import-export.md), [references/search.md](references/search.md) |
 
 Дополнительно подгружай технические reference-файлы по необходимости:
 
@@ -137,6 +139,8 @@ if (!Loader::includeModule('iblock')) {
 - HL-блоки и сложные связи/UF — [references/iblock-hl-relations.md](references/iblock-hl-relations.md), [references/custom-uf-types.md](references/custom-uf-types.md)
 - Почта, SMS и уведомления — [references/mail-notifications.md](references/mail-notifications.md)
 - Веб-формы, подписки и блоговый контур — [references/webforms.md](references/webforms.md), [references/subscribe.md](references/subscribe.md), [references/blog-socialnet.md](references/blog-socialnet.md)
+- Адресные userfield, карты, HTML editor, SMS-провайдеры и callback-и — [references/fileman.md](references/fileman.md), [references/location.md](references/location.md), [references/messageservice.md](references/messageservice.md), [references/mail-notifications.md](references/mail-notifications.md)
+- Локализация, языковые файлы, переводческий UI, индекс фраз, CSV import/export — [references/translate.md](references/translate.md), [references/import-export.md](references/import-export.md)
 - Форумы, опросы, соц-авторизация, лендинги, perf — [references/forum.md](references/forum.md), [references/vote.md](references/vote.md), [references/socialservices.md](references/socialservices.md), [references/landing.md](references/landing.md), [references/perfmon.md](references/perfmon.md)
 - `workflow` и `push/pull` — только как deferred-reference после подтверждения модулей `bizproc` и `pull`
 - Современный grid, file uploader, нумераторы, user consent, низкоуровневый DB — [references/grid-admin-modern.md](references/grid-admin-modern.md), [references/file-upload-modern.md](references/file-upload-modern.md), [references/numerator.md](references/numerator.md), [references/userconsent.md](references/userconsent.md), [references/database-layer.md](references/database-layer.md)
@@ -159,6 +163,9 @@ if (!Loader::includeModule('iblock')) {
 - Для форумов и голосований сначала считай контракт стандартных компонентов и legacy API из модуля, потому что типовой UI здесь всё ещё жёстко завязан на `CForum*` и `CVote*`.
 - Для `landing` сначала проверь права, hooks и режим мутаций; прямые `Block::add/update/delete` в текущем core защищены `LANDING_MUTATOR_MODE`.
 - Для витрины и стандартных компонентов сначала считай контракт компонента из ядра, затем ищи проектный шаблон, `result_modifier.php`, `component_epilog.php` и только потом меняй логику.
+- Для адресных форм, карт, HTML editor и медиа-полей почти всегда сначала проверяй связку `fileman` + `location`, а не только проектный шаблон.
+- Для SMS, провайдеров, ограничений и callback-ов сначала смотри `messageservice`, а почтовый контур `main/mail` подключай только как соседний слой, а не замену.
+- Для локализации и переводов сначала различай два контура: обычный `Loc::getMessage()`/lang-файлы и модуль `translate` с индексом фраз, CSV import/export, controller/stepper-процессами и edit UI.
 - Для поиска и фильтрации всегда учитывай не только код, но и индексаторы, права, сайт, ЧПУ и кеш.
 - Для обменов и импорта делай процесс идемпотентным, пакетным, логируемым и безопасным к повторному запуску.
 - После изменений в контенте, поиске и SEO всегда думай о зависимых индексах, тегированном кеше и публикационных последствиях.
