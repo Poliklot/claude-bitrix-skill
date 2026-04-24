@@ -1,9 +1,9 @@
 ---
 name: bitrix
-description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, highloadblocks, photogallery, blog, forum, vote, forms, landing, sitecorporate solution wizards, social auth, Bitrix24 connector widgets, mobileapp/JN, fileman/editor, cloud storage/files, bitrixcloud backup/monitoring, security/WAF/MFA, locations, message service, localization/translate, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, infrastructure, or PHP-heavy Bitrix tasks such as local modules, services, DTOs, event handlers, controller actions, validation, composer/phpunit/phpstan/php-cs-fixer toolchains, PHP testing/verification, and legacy-to-D7 boundaries. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
+description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, highloadblocks, photogallery, blog, forum, vote, forms, landing, sitecorporate solution wizards, social auth, Bitrix24 connector widgets, mobileapp/JN, fileman/editor, cloud storage/files, bitrixcloud backup/monitoring, security/WAF/MFA, locations, message service, localization/translate, HL blocks, templates, import/export, caching, index diagnostics, performance diagnostics, agents, events, controllers, search, SEO, users, infrastructure, operations, or PHP-heavy Bitrix tasks such as local modules, services, DTOs, event handlers, controller actions, validation, composer/phpunit/phpstan/php-cs-fixer toolchains, PHP testing/verification, legacy modernization, and legacy-to-D7 boundaries. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.15.0"
+  version: "1.16.0"
 compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 ---
 
@@ -31,6 +31,7 @@ compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 
 - Не опирайся на память, если код можно подтвердить в установленном ядре.
 - Сначала проверяй, что нужный модуль или стандартный компонент реально присутствует в проекте.
+- Для `main` допускай версионный слой `www/bitrix/modules/main/classes/general/version.php`: в текущем core у него нет обычного `install/version.php`.
 - Если модуль отсутствует, не выдумывай решение на его API. Зафиксируй отсутствие как факт и скорректируй подход.
 - Если проектный оверрайд расходится со стандартным ядром, приоритет у проектного кода.
 - Если `local/*` в checkout отсутствует как факт, следующим truth layer считай stock component templates, wizard `site/public/*` и `site/templates/*`, а не предполагаемые project overrides.
@@ -118,6 +119,7 @@ if (!Loader::includeModule('iblock')) {
 
 | Домен | Файлы |
 |------|------|
+| Audit текущего core и non-commerce task matrix | [references/core-audit-matrix.md](references/core-audit-matrix.md), [references/noncommerce-task-matrix.md](references/noncommerce-task-matrix.md) |
 | Модель данных сайта и инфоблоков | [references/iblocks.md](references/iblocks.md), [references/entities-migrations.md](references/entities-migrations.md), [references/import-export.md](references/import-export.md), [references/sef-urls.md](references/sef-urls.md) |
 | HL-блоки, directory, права, selector, UF | [references/highloadblock.md](references/highloadblock.md), [references/iblock-hl-relations.md](references/iblock-hl-relations.md), [references/custom-uf-types.md](references/custom-uf-types.md) |
 | Фото-галереи, альбомы, upload, slideshow, photo comments | [references/photogallery.md](references/photogallery.md), [references/components.md](references/components.md), [references/templates.md](references/templates.md), [references/blog-socialnet.md](references/blog-socialnet.md), [references/forum.md](references/forum.md) |
@@ -128,15 +130,16 @@ if (!Loader::includeModule('iblock')) {
 | Блог и комментарии | [references/blog-socialnet.md](references/blog-socialnet.md) — используй `CBlog*`-часть, а `socialnet`-часть только при подтверждённом модуле |
 | Форумы и обсуждения | [references/forum.md](references/forum.md), [references/blog-socialnet.md](references/blog-socialnet.md), [references/search.md](references/search.md) |
 | Голосования и опросы | [references/vote.md](references/vote.md), [references/templates.md](references/templates.md), [references/events-routing.md](references/events-routing.md) |
-| Витрина и стандартные компоненты | [references/components.md](references/components.md), [references/templates.md](references/templates.md) |
+| Витрина и стандартные компоненты без магазина | [references/standard-components-noncommerce.md](references/standard-components-noncommerce.md), [references/component-dataflow-debugging.md](references/component-dataflow-debugging.md), [references/components.md](references/components.md), [references/templates.md](references/templates.md) |
 | Лендинги и public pages | [references/landing.md](references/landing.md), [references/templates.md](references/templates.md), [references/seo-cache-access.md](references/seo-cache-access.md) |
-| Поиск, индексация, ЧПУ, SEO | [references/search.md](references/search.md), [references/sef-urls.md](references/sef-urls.md), [references/seo-cache-access.md](references/seo-cache-access.md), [references/cache-infra.md](references/cache-infra.md) |
+| Поиск, индексация, ЧПУ, SEO | [references/search.md](references/search.md), [references/sef-urls.md](references/sef-urls.md), [references/seo-cache-access.md](references/seo-cache-access.md), [references/cache-infra.md](references/cache-infra.md), [references/index-cache-diagnostics.md](references/index-cache-diagnostics.md) |
 | Пользователи, доступ, кабинет | [references/users.md](references/users.md), [references/access-rbac.md](references/access-rbac.md), [references/templates.md](references/templates.md), [references/socialservices.md](references/socialservices.md) |
 | Формы, уведомления, подписки | [references/webforms.md](references/webforms.md), [references/mail-notifications.md](references/mail-notifications.md), [references/subscribe.md](references/subscribe.md) |
-| Интеграции и обмены | [references/import-export.md](references/import-export.md), [references/http.md](references/http.md), [references/rest.md](references/rest.md), [references/update-stepper.md](references/update-stepper.md), [references/cache-infra.md](references/cache-infra.md) |
-| Админка, сопровождение, фоновые процессы | [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md), [references/update-stepper.md](references/update-stepper.md), [references/entities-migrations.md](references/entities-migrations.md), [references/perfmon.md](references/perfmon.md) |
+| Интеграции и обмены | [references/import-export.md](references/import-export.md), [references/http.md](references/http.md), [references/rest.md](references/rest.md), [references/update-stepper.md](references/update-stepper.md), [references/cache-infra.md](references/cache-infra.md), [references/operations-runbook.md](references/operations-runbook.md) |
+| Админка, сопровождение, фоновые процессы | [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md), [references/update-stepper.md](references/update-stepper.md), [references/entities-migrations.md](references/entities-migrations.md), [references/perfmon.md](references/perfmon.md), [references/operations-runbook.md](references/operations-runbook.md) |
 | События и кастомная логика | [references/events-routing.md](references/events-routing.md), [references/modules-loader.md](references/modules-loader.md), [references/iblocks.md](references/iblocks.md), [references/users.md](references/users.md) |
-| PHP-архитектура проекта, service-layer, DTO, exceptions, tests, static analysis | [references/php-workflow.md](references/php-workflow.md), [references/php-testing.md](references/php-testing.md), [references/modules-loader.md](references/modules-loader.md), [references/validation.md](references/validation.md), [references/database-layer.md](references/database-layer.md), [references/events-routing.md](references/events-routing.md) |
+| PHP-архитектура проекта, service-layer, DTO, exceptions, tests, static analysis | [references/php-workflow.md](references/php-workflow.md), [references/php-testing.md](references/php-testing.md), [references/php-quality.md](references/php-quality.md), [references/php-legacy-modernization.md](references/php-legacy-modernization.md), [references/modules-loader.md](references/modules-loader.md), [references/validation.md](references/validation.md), [references/database-layer.md](references/database-layer.md), [references/events-routing.md](references/events-routing.md) |
+| Диагностика “есть в админке, нет на сайте”, кеши, индексы, data flow | [references/diagnostic-visibility.md](references/diagnostic-visibility.md), [references/index-cache-diagnostics.md](references/index-cache-diagnostics.md), [references/component-dataflow-debugging.md](references/component-dataflow-debugging.md), [references/cache-infra.md](references/cache-infra.md), [references/search.md](references/search.md), [references/seo-cache-access.md](references/seo-cache-access.md) |
 | Адреса, карты, редактор, SMS, геоданные | [references/fileman.md](references/fileman.md), [references/location.md](references/location.md), [references/messageservice.md](references/messageservice.md), [references/mail-notifications.md](references/mail-notifications.md) |
 | Файлы, облачное хранилище, resize, внешний `SRC` | [references/clouds.md](references/clouds.md), [references/import-export.md](references/import-export.md), [references/file-upload-modern.md](references/file-upload-modern.md), [references/cache-infra.md](references/cache-infra.md) |
 | Bitrix Cloud backup, monitoring и mobile inspector | [references/bitrixcloud.md](references/bitrixcloud.md), [references/clouds.md](references/clouds.md), [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md) |
@@ -144,10 +147,14 @@ if (!Loader::includeModule('iblock')) {
 
 Дополнительно подгружай технические reference-файлы по необходимости:
 
+- Audit текущего core, активные/deferred зоны и task routing без магазина — [references/core-audit-matrix.md](references/core-audit-matrix.md), [references/noncommerce-task-matrix.md](references/noncommerce-task-matrix.md)
+- Диагностика видимости, кешей, индексов и data flow — [references/diagnostic-visibility.md](references/diagnostic-visibility.md), [references/index-cache-diagnostics.md](references/index-cache-diagnostics.md), [references/component-dataflow-debugging.md](references/component-dataflow-debugging.md)
 - ORM, runtime-поля, связи и `Result/Error` — [references/orm.md](references/orm.md)
 - Архитектура модуля, `Loader`, PSR-4, `ServiceLocator`, `Option` — [references/modules-loader.md](references/modules-loader.md)
 - PHP workflow в Bitrix-проекте: service-layer, DTO, exceptions, composer/phpunit/phpstan/fixer/rector — [references/php-workflow.md](references/php-workflow.md), [references/modules-loader.md](references/modules-loader.md), [references/validation.md](references/validation.md), [references/database-layer.md](references/database-layer.md)
 - PHP testing и verification: unit/integration, smoke без PHPUnit, test seams, fixtures, vendor noise — [references/php-testing.md](references/php-testing.md), [references/php-workflow.md](references/php-workflow.md), [references/events-routing.md](references/events-routing.md), [references/orm.md](references/orm.md)
+- PHP quality и legacy modernization: phpstan/psalm/fixer/rector, safe modernization, boundary extraction — [references/php-quality.md](references/php-quality.md), [references/php-legacy-modernization.md](references/php-legacy-modernization.md), [references/php-workflow.md](references/php-workflow.md)
+- Standard components без магазина и stock template truth layer — [references/standard-components-noncommerce.md](references/standard-components-noncommerce.md), [references/component-dataflow-debugging.md](references/component-dataflow-debugging.md), [references/components.md](references/components.md), [references/templates.md](references/templates.md)
 - Безопасность, CSRF, права, текущий пользователь — [references/security.md](references/security.md), [references/access-rbac.md](references/access-rbac.md)
 - Security module: WAF, redirect, IP rules, OTP/MFA, recovery codes, site checker, xscan — [references/security.md](references/security.md)
 - SiteCorporate: `wizard_solution`, `corp_services` / `corp_furniture`, rerun master, stock `furniture.*` components — [references/sitecorporate.md](references/sitecorporate.md), [references/components.md](references/components.md), [references/templates.md](references/templates.md)
@@ -166,6 +173,7 @@ if (!Loader::includeModule('iblock')) {
 - Форумы, опросы, соц-авторизация, лендинги, perf — [references/forum.md](references/forum.md), [references/vote.md](references/vote.md), [references/socialservices.md](references/socialservices.md), [references/landing.md](references/landing.md), [references/perfmon.md](references/perfmon.md)
 - `workflow` и `push/pull` — только как deferred-reference после подтверждения модулей `bizproc` и `pull`
 - Современный grid, file uploader, нумераторы, user consent, низкоуровневый DB — [references/grid-admin-modern.md](references/grid-admin-modern.md), [references/file-upload-modern.md](references/file-upload-modern.md), [references/numerator.md](references/numerator.md), [references/userconsent.md](references/userconsent.md), [references/database-layer.md](references/database-layer.md)
+- Эксплуатация, переносы, agents/cron/stepper, backup/monitoring и perf — [references/operations-runbook.md](references/operations-runbook.md), [references/update-stepper.md](references/update-stepper.md), [references/perfmon.md](references/perfmon.md), [references/bitrixcloud.md](references/bitrixcloud.md)
 
 ## Отложенные домены
 
@@ -187,6 +195,10 @@ if (!Loader::includeModule('iblock')) {
 - Exceptions внутри сервиса допустимы, но на Bitrix-boundary переводись в `Result/Error`, `addError(...)` controller-а или другой предсказуемый контракт, а не прокидывай raw exception в шаблон.
 - Для mixed-массивов `arParams`, `arResult` и legacy `C*` API сначала попробуй прояснить контракт локальным PHPDoc/array-shape, а не переусложнять слой ради одной доработки.
 - Для задач проверки сначала тестируй service/helper/adapter, а boundary (`component.php`, handler, controller, `result_modifier.php`) оставляй тонким и проверяй smoke- или integration-путём.
+- Для задач “в админке есть, на сайте нет” сначала иди по цепочке data source → permissions/site binding → component params → filters → `result_modifier.php` → template → cache/index/SEO.
+- Для cache/index задач сначала определи конкретный слой: component cache, tagged cache, managed cache, composite/static HTML, search index, SEO artifacts, landing cache.
+- Для стандартных компонентов без `local/*` сначала смотри stock component templates и `bitrix/templates/*`; наличие `catalog.*` в `iblock` не означает установленный модуль `catalog`.
+- Для эксплуатационных задач требуй воспроизводимый route: migration/install step, CLI, agent/stepper, documented rollback и повторный запуск без дублей.
 - Для задач контента сначала проверь модель данных: тип инфоблока, `API_CODE`, символьные коды, XML ID, свойства, пользовательские поля разделов, файловые поля, привязки.
 - Для задач `bitrix.sitecorporate` сначала проверь `main:wizard_solution`, нужный wizard (`corp_services` / `corp_furniture`), include-файлы решения и stock `furniture.*`-компоненты. Не своди модуль к выдуманному runtime API.
 - Для задач `bitrix.sitecorporate` отдельно проверяй public skeleton решения: он может ссылаться на стандартные компоненты соседних модулей, включая `catalog`, и это не доказывает, что модуль реально установлен в текущем core.
@@ -218,6 +230,7 @@ if (!Loader::includeModule('iblock')) {
 - Не предполагать наличие `catalog`, `sale` или другого модуля без проверки.
 - Не трактовать `bitrix.sitecorporate` как общий business/runtime-модуль: в текущем core это wizard-shell плюс solution-specific `furniture.*` helpers.
 - Не считать ссылки из wizard/public skeleton на `bitrix:catalog`, `bitrix:news` или другие компоненты доказательством, что соответствующий модуль установлен в проекте.
+- Не считать физическое наличие `catalog.*` компонентов в `iblock/install/components/bitrix` доказательством установленного модуля `catalog`.
 - Не предполагать, что файл физически лежит локально, если активен `clouds` или у записи есть `HANDLER_ID`.
 - Не использовать `Bitrix\\Blog\\PostTable::add/update/delete()` и `CommentTable::add/update/delete()` для записи, если сам core велит идти через `CBlog*`.
 - Не объявлять поведение кастомным только потому, что в проекте нет `local/*`: сначала проверь stock template variant стандартного компонента и wizard public/template слой.
@@ -234,6 +247,8 @@ if (!Loader::includeModule('iblock')) {
 - Не переписывать стандартный компонент вслепую, если можно расширить его контракт или изменить шаблон/модификатор.
 - Не складывать бизнес-логику в `template.php`, если она должна жить в сервисе, `result_modifier.php` или обработчике.
 - Не пытаться unit-test-ить `template.php` и legacy boundary, если сначала можно вынести проверяемую логику в service/helper.
+- Не сводить диагностику “не видно на сайте” к общей очистке кеша без проверки прав, site binding, component params, фильтров, шаблона и индексов.
+- Не делать эксплуатационный скрипт без идемпотентности, логирования и понятного rollback-плана.
 - Не игнорировать `$result->isSuccess()`, `LAST_ERROR`, ошибки валидации и несовместимость сущностей.
 - Не забывать про инвалидацию кеша, переиндексацию и пересчёты после изменений данных.
 - Не выводить данные без экранирования и не подмешивать пользовательский ввод в SQL.

@@ -192,6 +192,8 @@ rg --files . \
 ## С чем читать вместе
 
 - PHP architecture и toolchain — [php-workflow.md](php-workflow.md)
+- PHP quality — [php-quality.md](php-quality.md)
+- Legacy modernization — [php-legacy-modernization.md](php-legacy-modernization.md)
 - Архитектура модуля, Loader, ServiceLocator — [modules-loader.md](modules-loader.md)
 - Контроллеры, handlers, routing — [events-routing.md](events-routing.md)
 - ORM и `Result/Error` — [orm.md](orm.md)

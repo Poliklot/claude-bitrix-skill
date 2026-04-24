@@ -13,6 +13,7 @@ Core-first skill for `1C-Bitrix CMS` and `Bitrix24` in `Claude Code` and `Codex`
 - Поддерживает `D7` и legacy API в одном маршруте.
 - Учитывает ситуации, когда в checkout вообще нет `www/local`.
 - Подхватывает существующий PHP toolchain проекта: `composer`, `phpunit`, `phpstan`/`psalm`, fixer/sniffer, `rector` — только если он реально есть, и не путает его с vendor-шумом внутри core.
+- Закрывает безмагазинные диагностики: “в админке есть, на сайте нет”, кеши, индексы, standard components, legacy modernization и эксплуатационные операции.
 - Ставит навык в `Claude Code` и `Codex` на macOS, Linux и Windows.
 - При первом содержательном `/bitrix` должен предложить обновление, если release уже вырос.
 
@@ -122,9 +123,9 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 Сейчас навык уже проверен и уверенно закрывает:
 
 - ядро и инфраструктуру: ORM, модули, события, кеш, DB layer, session/auth, RBAC, update stepper
-- PHP-слой проекта: service-layer, DTO/value-object границы, exceptions vs `Result/Error`, project tooling, testing/verification и quality gates без конфликта с Bitrix-нормами
+- PHP-слой проекта: service-layer, DTO/value-object границы, exceptions vs `Result/Error`, project tooling, testing/verification, quality gates и legacy modernization без конфликта с Bitrix-нормами
 - контентные и системные модули: инфоблоки, HL-блоки, формы, блог, форум, голосования, photogallery, landing, fileman, translate, search, SEO, import/export
-- интеграционный и эксплуатационный слой: REST, socialservices, b24connector, mobileapp, clouds, bitrixcloud, messageservice, perfmon, admin UI, migrations
+- интеграционный, диагностический и эксплуатационный слой: REST, socialservices, b24connector, mobileapp, clouds, bitrixcloud, messageservice, perfmon, admin UI, migrations, agents/cron/stepper, cache/index troubleshooting
 
 Магазинный контур остаётся отдельным этапом и подключается только после установки соответствующего core.
 
@@ -133,11 +134,20 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 
 | Файл справки | Темы |
 |--------------|------|
+| `core-audit-matrix.md` | Матрица текущего non-commerce core: активные модули, deferred-домены, ловушки вроде `catalog.*` внутри `iblock` без модуля `catalog` |
+| `noncommerce-task-matrix.md` | Быстрое сопоставление типовых и нетиповых задач без магазина с правильными reference-файлами |
+| `diagnostic-visibility.md` | Диагностика “в админке есть, на сайте нет”: права, site binding, параметры компонента, фильтры, шаблон, кеши, индексы |
+| `index-cache-diagnostics.md` | Component cache, tagged/managed cache, composite/static HTML, search index, SEO artifacts, landing cache |
+| `component-dataflow-debugging.md` | Трассировка standard component flow: `.parameters.php`, `component.php`, `result_modifier.php`, `template.php`, `component_epilog.php`, AJAX |
 | `orm.md` | DataManager, CRUD, связи, фильтры, агрегация, runtime fields, ORM events, Result/Error |
 | `events-routing.md` | EventManager, Engine\Controller, AJAX, роутинг, CSRF |
 | `modules-loader.md` | Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc |
 | `php-workflow.md` | PHP workflow в Bitrix-проекте: service-layer, DTO, exceptions, composer/phpunit/phpstan/fixer/rector, quality gates без конфликта с core-first |
 | `php-testing.md` | PHP testing и verification в Bitrix-проекте: unit/integration, smoke без готового PHPUnit-контура, test seams, fixtures, vendor noise внутри core |
+| `php-quality.md` | PHP quality gates в Bitrix-проекте: phpstan/psalm/fixer/sniffer/rector без навязывания нового toolchain |
+| `php-legacy-modernization.md` | Безопасная модернизация legacy: boundary extraction, D7 vs `C*` write paths, DTO/strict_types только в подходящих слоях |
+| `standard-components-noncommerce.md` | Standard components без магазина: active component families, stock templates, `catalog.*` как iblock-компоненты без commerce-обещаний |
+| `operations-runbook.md` | Эксплуатация без магазина: переносы, agents/cron/stepper, импорты, backup/monitoring, perf diagnostics, core updates |
 | `components.md` | CBitrixComponent, шаблоны, кеш компонента, CComponentEngine |
 | `sitecorporate.md` | `bitrix.sitecorporate`: wizard shell, `corp_services`/`corp_furniture`, `wizard_solution`, panel rerun, stock `furniture.*`, wizard `site/public` и `site/templates`, conditional `catalog` dependency в `corp_furniture` skeleton |
 | `cache-infra.md` | Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path |

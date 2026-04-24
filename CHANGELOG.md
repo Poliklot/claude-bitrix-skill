@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-04-24
+
+### Added
+- `bitrix/references/core-audit-matrix.md` — матрица текущего non-commerce core: активные модули, deferred-домены и ловушки вроде `catalog.*` компонентов внутри `iblock` без установленного модуля `catalog`
+- `bitrix/references/noncommerce-task-matrix.md` — быстрый routing типовых и нетиповых задач без интернет-магазина в правильные reference-файлы
+- `bitrix/references/diagnostic-visibility.md` — диагностика “в админке есть, на сайте нет”: права, site binding, component params, filters, templates, cache/index/SEO chain
+- `bitrix/references/index-cache-diagnostics.md` — отдельный слой по component/tagged/managed/composite cache, search index и SEO artifacts
+- `bitrix/references/component-dataflow-debugging.md` — трассировка standard component flow от `.parameters.php` до `component_epilog.php` и AJAX
+- `bitrix/references/php-quality.md` — PHP quality gates для Bitrix-проектов: phpstan/psalm/fixer/sniffer/rector без навязывания нового toolchain
+- `bitrix/references/php-legacy-modernization.md` — безопасная legacy modernization: boundary extraction, D7 vs `C*` write paths, selective modern PHP
+- `bitrix/references/standard-components-noncommerce.md` — standard components без магазина и stock template truth layer
+- `bitrix/references/operations-runbook.md` — эксплуатационный runbook без магазина: переносы, agents/cron/stepper, импорты, backup/monitoring, perf diagnostics, обновления core
+
+### Changed
+- `bitrix/SKILL.md` теперь маршрутизирует весь non-commerce контур по audit matrix, diagnostic layers, PHP quality/legacy modernization, standard components и operations runbook
+- `bitrix/references/php-workflow.md` и `bitrix/references/php-testing.md` связаны с новыми PHP quality и legacy modernization слоями
+- `README.md` синхронизирован с новым non-commerce покрытием и полной матрицей новых reference-файлов
+
 ## [1.15.0] — 2026-04-24
 
 ### Added
@@ -223,7 +241,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.15.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.16.0...HEAD
+[1.16.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.13.0...v1.14.0
 [1.13.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.12.0...v1.13.0

@@ -226,4 +226,6 @@ final class ProfileService
 - ORM и `Result/Error` — [orm.md](orm.md)
 - DB layer и совместимость разных СУБД — [database-layer.md](database-layer.md)
 - Тестирование и verification — [php-testing.md](php-testing.md)
+- Quality gates — [php-quality.md](php-quality.md)
+- Legacy modernization — [php-legacy-modernization.md](php-legacy-modernization.md)
 - Шаблоны и component layer — [components.md](components.md), [templates.md](templates.md)
