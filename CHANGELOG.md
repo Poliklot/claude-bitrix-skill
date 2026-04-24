@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-04-24
+
+### Added
+- `bitrix/references/php-workflow.md` — отдельный reference по PHP-heavy задачам в Bitrix-проекте: service-layer, DTO/value-object границы, exceptions vs `Result/Error`, project toolchain (`composer`, `phpunit`, `phpstan`/`psalm`, fixer/sniffer, `rector`) и минимальные quality gates без конфликта с Bitrix-нормами
+
+### Changed
+- `bitrix/SKILL.md` теперь явно маршрутизирует PHP-heavy Bitrix-задачи в новый `php-workflow.md`, учитывает project-tooling-first подход и фиксирует границы для `strict_types`, exceptions и foreign framework patterns
+- `README.md` синхронизирован с новым PHP-покрытием и дополнен `php-workflow.md` в матрице reference-файлов
+
 ## [1.13.0] — 2026-04-15
 
 ### Changed
@@ -204,7 +213,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.13.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.13.0...v1.14.0
 [1.13.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.10.0...v1.11.0

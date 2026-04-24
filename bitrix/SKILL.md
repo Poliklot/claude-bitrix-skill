@@ -1,9 +1,9 @@
 ---
 name: bitrix
-description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, highloadblocks, photogallery, blog, forum, vote, forms, landing, sitecorporate solution wizards, social auth, Bitrix24 connector widgets, mobileapp/JN, fileman/editor, cloud storage/files, bitrixcloud backup/monitoring, security/WAF/MFA, locations, message service, localization/translate, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, or infrastructure. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
+description: Provides expertise in 1C-Bitrix CMS development using the actual project core as the primary source of truth. Use when working with currently installed core modules, standard components, iblocks, highloadblocks, photogallery, blog, forum, vote, forms, landing, sitecorporate solution wizards, social auth, Bitrix24 connector widgets, mobileapp/JN, fileman/editor, cloud storage/files, bitrixcloud backup/monitoring, security/WAF/MFA, locations, message service, localization/translate, HL blocks, templates, import/export, caching, performance diagnostics, agents, events, controllers, search, SEO, users, infrastructure, or PHP-heavy Bitrix tasks such as local modules, services, DTOs, event handlers, controller actions, validation, composer/phpunit/phpstan/php-cs-fixer toolchains, and legacy-to-D7 boundaries. First inspect installed modules and components under `www/bitrix` before relying on memory. Missing modules such as `catalog`, `sale`, `bizproc`, `pull`, or `socialnet` must be treated as deferred until they appear in the core.
 metadata:
   author: poliklot
-  version: "1.13.0"
+  version: "1.14.0"
 compatibility: Designed for Claude Code and Codex on 1C-Bitrix CMS projects
 ---
 
@@ -78,16 +78,18 @@ if (!Loader::includeModule('iblock')) {
 - **Production-ready**. Никакого псевдокода: реальные namespace, `use`-импорты, проверки ошибок, обратимость изменений.
 - **Код важнее клик-пути**. Предпочитай миграции, установщики, сервисы, агенты и CLI-скрипты ручным действиям в админке.
 - **Диагностика по цепочке**. Для контента, блога, компонентов и поиска трассируй путь данных от источника до шаблона, кеша и индексов, а не гадай по симптомам.
+- **Project-tooling-first для PHP-задач**. Если в проекте уже есть `composer.json`, `phpunit.xml*`, `phpstan*`, `psalm*`, fixer/sniffer или `rector.php`, используй именно их. Не тащи новый PHP-стек ради одной правки.
 
 ## Рабочий алгоритм
 
 1. Определи домен задачи: модель данных, блог/контент, компоненты, поиск, SEO, синхронизация, пользователи, админка, производительность.
 2. Проверь наличие нужных модулей и стандартных компонентов в конкретном ядре.
 3. Посмотри проектные оверрайды и glue-code в `local/`.
-4. Загрузи только релевантные reference-файлы.
-5. Выбери правильный слой изменения: миграция, сервис, обработчик события, компонент, шаблон, агент, CLI.
-6. Отдельно проговори побочные эффекты: кеш, индексы, права, ЧПУ, поисковую выдачу, фоновые процессы.
-7. Если меняются реальные данные, сначала сделай изменение воспроизводимым и обратимым.
+4. Для PHP-heavy задачи отдельно проверь project toolchain: `composer.json`, `phpunit.xml*`, `phpstan*`, `psalm*`, fixer/sniffer, `rector.php`.
+5. Загрузи только релевантные reference-файлы.
+6. Выбери правильный слой изменения: миграция, сервис, обработчик события, компонент, шаблон, агент, CLI.
+7. Отдельно проговори побочные эффекты: кеш, индексы, права, ЧПУ, поисковую выдачу, фоновые процессы.
+8. Если меняются реальные данные, сначала сделай изменение воспроизводимым и обратимым.
 
 ## Подтверждение перед изменением данных
 
@@ -134,6 +136,7 @@ if (!Loader::includeModule('iblock')) {
 | Интеграции и обмены | [references/import-export.md](references/import-export.md), [references/http.md](references/http.md), [references/rest.md](references/rest.md), [references/update-stepper.md](references/update-stepper.md), [references/cache-infra.md](references/cache-infra.md) |
 | Админка, сопровождение, фоновые процессы | [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md), [references/update-stepper.md](references/update-stepper.md), [references/entities-migrations.md](references/entities-migrations.md), [references/perfmon.md](references/perfmon.md) |
 | События и кастомная логика | [references/events-routing.md](references/events-routing.md), [references/modules-loader.md](references/modules-loader.md), [references/iblocks.md](references/iblocks.md), [references/users.md](references/users.md) |
+| PHP-архитектура проекта, service-layer, DTO, exceptions, tests, static analysis | [references/php-workflow.md](references/php-workflow.md), [references/modules-loader.md](references/modules-loader.md), [references/validation.md](references/validation.md), [references/database-layer.md](references/database-layer.md), [references/events-routing.md](references/events-routing.md) |
 | Адреса, карты, редактор, SMS, геоданные | [references/fileman.md](references/fileman.md), [references/location.md](references/location.md), [references/messageservice.md](references/messageservice.md), [references/mail-notifications.md](references/mail-notifications.md) |
 | Файлы, облачное хранилище, resize, внешний `SRC` | [references/clouds.md](references/clouds.md), [references/import-export.md](references/import-export.md), [references/file-upload-modern.md](references/file-upload-modern.md), [references/cache-infra.md](references/cache-infra.md) |
 | Bitrix Cloud backup, monitoring и mobile inspector | [references/bitrixcloud.md](references/bitrixcloud.md), [references/clouds.md](references/clouds.md), [references/admin-ui.md](references/admin-ui.md), [references/cache-infra.md](references/cache-infra.md) |
@@ -143,6 +146,7 @@ if (!Loader::includeModule('iblock')) {
 
 - ORM, runtime-поля, связи и `Result/Error` — [references/orm.md](references/orm.md)
 - Архитектура модуля, `Loader`, PSR-4, `ServiceLocator`, `Option` — [references/modules-loader.md](references/modules-loader.md)
+- PHP workflow в Bitrix-проекте: service-layer, DTO, exceptions, composer/phpunit/phpstan/fixer/rector — [references/php-workflow.md](references/php-workflow.md), [references/modules-loader.md](references/modules-loader.md), [references/validation.md](references/validation.md), [references/database-layer.md](references/database-layer.md)
 - Безопасность, CSRF, права, текущий пользователь — [references/security.md](references/security.md), [references/access-rbac.md](references/access-rbac.md)
 - Security module: WAF, redirect, IP rules, OTP/MFA, recovery codes, site checker, xscan — [references/security.md](references/security.md)
 - SiteCorporate: `wizard_solution`, `corp_services` / `corp_furniture`, rerun master, stock `furniture.*` components — [references/sitecorporate.md](references/sitecorporate.md), [references/components.md](references/components.md), [references/templates.md](references/templates.md)
@@ -175,6 +179,11 @@ if (!Loader::includeModule('iblock')) {
 
 ## Content-first эвристики
 
+- Для PHP-heavy задач сначала различай Bitrix boundary и чистую domain-логику: `component.php`, `result_modifier.php`, controller action, event handler и admin/public entrypoint должны координировать, а тяжёлая логика должна жить в сервисе.
+- Для PHP-heavy задач сначала проверь, есть ли в проекте `composer.json`, `phpunit.xml*`, `phpstan*`, `psalm*`, `.php-cs-fixer.php`, `ecs.php`, `phpcs.xml*`, `rector.php`; не навязывай стек, которого в проекте нет.
+- `declare(strict_types=1)`, `final`, `readonly`, DTO и value objects по умолчанию применяй только в изолированных local/service-layer файлах, а не в legacy entrypoint, component template или старом admin/public PHP без проверки surrounding code.
+- Exceptions внутри сервиса допустимы, но на Bitrix-boundary переводись в `Result/Error`, `addError(...)` controller-а или другой предсказуемый контракт, а не прокидывай raw exception в шаблон.
+- Для mixed-массивов `arParams`, `arResult` и legacy `C*` API сначала попробуй прояснить контракт локальным PHPDoc/array-shape, а не переусложнять слой ради одной доработки.
 - Для задач контента сначала проверь модель данных: тип инфоблока, `API_CODE`, символьные коды, XML ID, свойства, пользовательские поля разделов, файловые поля, привязки.
 - Для задач `bitrix.sitecorporate` сначала проверь `main:wizard_solution`, нужный wizard (`corp_services` / `corp_furniture`), include-файлы решения и stock `furniture.*`-компоненты. Не своди модуль к выдуманному runtime API.
 - Для задач `bitrix.sitecorporate` отдельно проверяй public skeleton решения: он может ссылаться на стандартные компоненты соседних модулей, включая `catalog`, и это не доказывает, что модуль реально установлен в текущем core.
@@ -215,6 +224,9 @@ if (!Loader::includeModule('iblock')) {
 - Не отправлять все задачи по `mobileapp` в deferred-маршрут `pull`, если проблема лежит в `JN`, admin mobile или стандартных mobile-компонентах самого модуля.
 - Не путать существование remote widget в Bitrix24 с локальной активацией и site-restriction слоем `b24connector`.
 - Не путать `bitrixcloud` backup/monitoring с обычными bucket-ами `clouds`.
+- Не тащить в нативный Bitrix-модуль чужой framework-слой вроде repositories/service providers/Http-kernel из Laravel или Symfony, если проект уже живёт на `Loader` + `ServiceLocator` + standard component/controller contracts.
+- Не добавлять `declare(strict_types=1)` и modern-PHP атрибуты вслепую в legacy entrypoint, `template.php`, `result_modifier.php` или старый admin/public PHP без проверки совместимости.
+- Не форсить `composer`, PHPUnit, phpstan, psalm, fixer или rector в проект, где этого контура нет, если задача не требует отдельного согласованного внедрения tooling.
 - Не переписывать стандартный компонент вслепую, если можно расширить его контракт или изменить шаблон/модификатор.
 - Не складывать бизнес-логику в `template.php`, если она должна жить в сервисе, `result_modifier.php` или обработчике.
 - Не игнорировать `$result->isSuccess()`, `LAST_ERROR`, ошибки валидации и несовместимость сущностей.

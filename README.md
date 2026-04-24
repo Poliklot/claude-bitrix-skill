@@ -12,6 +12,7 @@ Core-first skill for `1C-Bitrix CMS` and `Bitrix24` in `Claude Code` and `Codex`
 
 - Поддерживает `D7` и legacy API в одном маршруте.
 - Учитывает ситуации, когда в checkout вообще нет `www/local`.
+- Подхватывает существующий PHP toolchain проекта: `composer`, `phpunit`, `phpstan`/`psalm`, fixer/sniffer, `rector` — только если он реально есть.
 - Ставит навык в `Claude Code` и `Codex` на macOS, Linux и Windows.
 - При первом содержательном `/bitrix` должен предложить обновление, если release уже вырос.
 
@@ -121,6 +122,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 Сейчас навык уже проверен и уверенно закрывает:
 
 - ядро и инфраструктуру: ORM, модули, события, кеш, DB layer, session/auth, RBAC, update stepper
+- PHP-слой проекта: service-layer, DTO/value-object границы, exceptions vs `Result/Error`, project tooling и quality gates без конфликта с Bitrix-нормами
 - контентные и системные модули: инфоблоки, HL-блоки, формы, блог, форум, голосования, photogallery, landing, fileman, translate, search, SEO, import/export
 - интеграционный и эксплуатационный слой: REST, socialservices, b24connector, mobileapp, clouds, bitrixcloud, messageservice, perfmon, admin UI, migrations
 
@@ -134,6 +136,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 | `orm.md` | DataManager, CRUD, связи, фильтры, агрегация, runtime fields, ORM events, Result/Error |
 | `events-routing.md` | EventManager, Engine\Controller, AJAX, роутинг, CSRF |
 | `modules-loader.md` | Структура модуля, Loader, PSR-4, Application, ServiceLocator, Config\Option, Loc |
+| `php-workflow.md` | PHP workflow в Bitrix-проекте: service-layer, DTO, exceptions, composer/phpunit/phpstan/fixer/rector, quality gates без конфликта с core-first |
 | `components.md` | CBitrixComponent, шаблоны, кеш компонента, CComponentEngine |
 | `sitecorporate.md` | `bitrix.sitecorporate`: wizard shell, `corp_services`/`corp_furniture`, `wizard_solution`, panel rerun, stock `furniture.*`, wizard `site/public` и `site/templates`, conditional `catalog` dependency в `corp_furniture` skeleton |
 | `cache-infra.md` | Data\Cache, TaggedCache, CAgent, IO\File/Directory/Path |
