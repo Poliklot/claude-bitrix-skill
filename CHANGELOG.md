@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-04-24
+
+### Added
+- `bitrix/references/php-testing.md` — отдельный reference по PHP testing и verification в Bitrix-проекте: unit/integration, smoke без готового PHPUnit-контура, test seams, fixtures и разведение project contour от vendor noise внутри core
+
+### Changed
+- `bitrix/references/php-workflow.md` теперь явно исключает vendor noise внутри `www/bitrix/modules/*/vendor` при диагностике project tooling и ссылается на новый testing-layer
+- `bitrix/SKILL.md` теперь маршрутизирует PHP testing/verification в новый `php-testing.md`, различает project contour и vendor noise и фиксирует safe-подход к проверке boundary-кода
+- `README.md` синхронизирован с новым testing-покрытием PHP-слоя и дополнен `php-testing.md` в матрице reference-файлов
+
 ## [1.14.0] — 2026-04-24
 
 ### Added
@@ -213,7 +223,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.15.0...HEAD
+[1.15.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.13.0...v1.14.0
 [1.13.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.11.0...v1.12.0

@@ -33,7 +33,9 @@
 ```bash
 php -v
 
-rg --files \
+rg --files . \
+  -g '!vendor/**' \
+  -g '!www/bitrix/modules/*/vendor/**' \
   -g 'composer.json' \
   -g 'composer.lock' \
   -g 'phpunit.xml' -g 'phpunit.xml.dist' \
@@ -53,6 +55,8 @@ rg --files \
 3. `phpstan*` / `psalm*` — есть ли статанализ и на каком уровне зрелости.
 4. `.php-cs-fixer.php` / `ecs.php` / `phpcs.xml*` — чем форматируют код.
 5. `rector.php` — есть ли автоматизированные кодовые миграции.
+
+Игнорируй vendor noise внутри `www/bitrix/modules/*/vendor`: в текущем core там есть сторонние пакеты со своими `composer.json` и `phpunit.xml.dist`, и это не означает, что project contour уже настроен.
 
 Если ничего из этого нет, не изображай, что проект обязан жить по современному PHP-tooling full stack. Для такого проекта минимальный безопасный baseline: `php -l` по изменённым файлам, аккуратные PHPDoc-контракты и сохранение текущего стиля кода.
 
@@ -221,4 +225,5 @@ final class ProfileService
 - ValidationService и attributes — [validation.md](validation.md)
 - ORM и `Result/Error` — [orm.md](orm.md)
 - DB layer и совместимость разных СУБД — [database-layer.md](database-layer.md)
+- Тестирование и verification — [php-testing.md](php-testing.md)
 - Шаблоны и component layer — [components.md](components.md), [templates.md](templates.md)
