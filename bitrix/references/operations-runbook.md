@@ -88,7 +88,7 @@
 
 ## Производительность
 
-Смотри:
+Для общего запроса “как оптимизировать проект” открывай `project-optimization-audit.md`, затем смотри:
 
 - perfmon SQL/hit/cache reports;
 - N+1 in components/templates;

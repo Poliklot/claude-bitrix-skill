@@ -116,7 +116,7 @@ composite отвечает за уже собранный HTML страницы;
 browser/CDN отвечает за внешний HTTP-кеш.
 ```
 
-Не лечи composite-проблему только `Cache::cleanDir()`, и не лечи component-result проблему только очисткой `/bitrix/html_pages/`. Сначала назови слой.
+Не лечи composite-проблему только `Cache::cleanDir()`, и не лечи component-result проблему только очисткой `/bitrix/html_pages/`. Сначала назови слой. Для общего performance-аудита открывай [project-optimization-audit.md](project-optimization-audit.md).
 
 ---
 

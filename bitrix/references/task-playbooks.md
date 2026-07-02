@@ -185,7 +185,28 @@ rg -n 'StartResultCache|AbortResultCache|setResultCacheKeys|CACHE_TYPE|CACHE_TIM
 
 **Не делать:** глобально отключать кеш без layer diagnosis; не считать `setFrameMode(true)` динамическим блоком. Для composite открывай `composite-cache.md`.
 
-## 10. Shop/catalog/sale задача
+
+## 10. Аудит оптимизаций проекта
+
+**Открыть:** [project-optimization-audit.md](project-optimization-audit.md), затем `perfmon.md`, `cache-infra.md`, `composite-cache.md`, `components.md`, `templates.md`, `operations-runbook.md` и доменные references.
+
+**Найти:**
+
+```bash
+rg -n 'IncludeComponent\(|CACHE_TYPE|CACHE_TIME|CACHE_GROUPS|StartResultCache|setResultCacheKeys|CIBlockElement::GetList|::getList\(|ResizeImageGet|Asset::getInstance|CAgent::AddAgent|Stepper|setFrameMode|createFrame|Composite|clearCache|cleanDir|clearByTag' \
+  . --glob '*.php' --glob '*.js' --glob '!upload/**' --glob '!bitrix/cache/**' --glob '!www/bitrix/cache/**'
+```
+
+**Отчёт:**
+
+1. что уже оптимизировано: component/tagged/managed/composite cache, pagination/lazy, images, agents/stepper, frontend assets;
+2. где оптимизации опасны: персональные данные в кеше, `CACHE_TYPE=N` без причины, общий cache key, N+1, full-table selects, global cache clear;
+3. safe wins: preload вместо N+1, точечные cache tags, корректный `CACHE_GROUPS`, dynamic area для персональных блоков, batching imports;
+4. что требует runtime/perfmon: DB indexes, slow SQL, hot pages, frontend weight, CDN/browser cache.
+
+**Не делать:** не обещать ускорение без evidence; не советовать Redis/CDN/composite/global clear как первый шаг.
+
+## 11. Shop/catalog/sale задача
 
 **Сначала module check:**
 
@@ -204,7 +225,7 @@ for m in catalog sale currency; do test -f "www/bitrix/modules/$m/install/versio
 
 **Не делать:** прямой SQL в price/order/basket/stock tables.
 
-## 11. 1С / CommerceML обмен
+## 12. 1С / CommerceML обмен
 
 **Найти:**
 
@@ -224,7 +245,7 @@ rg -n 'catalog\\.import\\.1c|catalog\\.export\\.1c|sale\\.export\\.1c|BX_CML2|CM
 
 **Не делать:** считать успешный upload XML успешным импортом.
 
-## 12. Где писать кастомную логику
+## 13. Где писать кастомную логику
 
 **Найти project conventions:**
 

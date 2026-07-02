@@ -8,13 +8,13 @@ description: >-
   debugging, modifying, migrating, integrating, optimizing, testing, securing, operating, or planning
   Bitrix PHP work; for everyday basics like meta title/description, `ShowHead`, `ShowTitle`, assets,
   breadcrumbs, includes, current user; for production best practices, pitfalls,
-  cache/index/SEO/search/pagination/admin UI/agents/runtime diagnostics; and for shop/1C/REST:
+  cache/index/SEO/search/perf optimization audits; and for shop/1C/REST:
   `catalog`, `sale`, `currency`, SKU/offers, prices, stocks, basket/cart, orders, payments, delivery,
   discounts, marketing/mail/SMS, bizproc/workflow, webhooks, sale/catalog REST, 1C/CommerceML. Inspect
   local core and `local/*`; missing optional modules are deferred.
 metadata:
   author: poliklot
-  version: "1.31.0"
+  version: "1.32.0"
 ---
 
 # Bitrix Expert Skill
@@ -32,7 +32,7 @@ Designed for Claude Code and Codex on 1C-Bitrix CMS projects.
 
 Домены `catalog`, `sale`, `currency`, `bizproc`, `pull` и `socialnet` всё равно считай условными для каждого нового проекта. Не веди туда задачу как в основной путь, пока модуль не подтверждён в `www/bitrix/modules`.
 
-Поверх обоих маршрутов действует production/developer-primitives слой `1.31.0`: best practices, pitfalls matrix, tail module routing и runtime smoke verification. Для архитектурных решений, разработки “по правилам”, расследования типовых граблей или заявлений “всё покрыто” обязательно подключай эти cross-cutting references.
+Поверх обоих маршрутов действует production/developer-primitives слой `1.32.0`: best practices, pitfalls matrix, tail module routing и runtime smoke verification. Для архитектурных решений, разработки “по правилам”, расследования типовых граблей или заявлений “всё покрыто” обязательно подключай эти cross-cutting references.
 
 ## Источник истины
 
@@ -156,6 +156,7 @@ if (!Loader::includeModule('iblock')) {
 | Core audit, version mismatch, tail modules и task routing | [references/core-audit-matrix.md](references/core-audit-matrix.md), [references/version-impact.md](references/version-impact.md), [references/shop-core-tail-modules.md](references/shop-core-tail-modules.md), [references/noncommerce-task-matrix.md](references/noncommerce-task-matrix.md), [references/shop-task-matrix.md](references/shop-task-matrix.md), [references/reference-map.md](references/reference-map.md) |
 | Production practice / “как правильно” | [references/production-best-practices.md](references/production-best-practices.md), [references/pitfalls-matrix.md](references/pitfalls-matrix.md), [references/runtime-smoke-verification.md](references/runtime-smoke-verification.md), затем доменный reference из [references/reference-map.md](references/reference-map.md) |
 | Components/templates/dataflow/cache/composite/SEO | [references/components.md](references/components.md), [references/templates.md](references/templates.md), [references/component-dataflow-debugging.md](references/component-dataflow-debugging.md), [references/cache-infra.md](references/cache-infra.md), [references/composite-cache.md](references/composite-cache.md), [references/index-cache-diagnostics.md](references/index-cache-diagnostics.md), [references/seo-cache-access.md](references/seo-cache-access.md) |
+| Аудит оптимизаций проекта / “что ускорить” | [references/project-optimization-audit.md](references/project-optimization-audit.md), [references/perfmon.md](references/perfmon.md), [references/cache-infra.md](references/cache-infra.md), [references/composite-cache.md](references/composite-cache.md), [references/operations-runbook.md](references/operations-runbook.md), затем доменный reference из [references/reference-map.md](references/reference-map.md) |
 | PHP-heavy задача | [references/php-workflow.md](references/php-workflow.md), [references/php-testing.md](references/php-testing.md), [references/php-quality.md](references/php-quality.md), [references/modules-loader.md](references/modules-loader.md), [references/orm.md](references/orm.md) |
 | Shop / sale / catalog / 1C | Сначала module check; затем [references/shop-task-matrix.md](references/shop-task-matrix.md), [references/shop-standard-components.md](references/shop-standard-components.md), [references/catalog.md](references/catalog.md), [references/sale.md](references/sale.md), [references/currency.md](references/currency.md), [references/commerce-1c-integration.md](references/commerce-1c-integration.md) |
 | Release / публикация skill | [references/release-gate.md](references/release-gate.md), [references/eval-prompts.md](references/eval-prompts.md) |

@@ -230,7 +230,19 @@ $image = CFile::ResizeImageGet(
 
 **Побочные эффекты:** права групп, персонализация, managed cache tags, composite second request/cache pass, ajax lazy blocks, browser/CDN cache.
 
-## 15. Почтовое событие / форма обратной связи
+## 15. Аудит оптимизаций проекта
+
+**Запрос:** “изучи проект и скажи как оптимизировать”, “какие оптимизации уже есть”, “почему сайт тормозит”, “проверь кеши и производительность”.
+
+**Не делай:** не начинай с Redis/CDN/composite/global cache clear и не обещай ускорение без evidence.
+
+**Делай:** открой `project-optimization-audit.md`; собери карту component/tagged/managed/composite cache, SQL/ORM/N+1, тяжёлых шаблонов, images/assets, agents/imports/stepper, search/facet/SEO и shop side effects.
+
+**Где проверить:** `project-optimization-audit.md`, `perfmon.md`, `core-grep-cookbook.md`, `cache-infra.md`, `operations-runbook.md`, `components.md`, `templates.md`, доменный reference.
+
+**Побочные эффекты:** права, персонализация, индексы, бизнес-логика catalog/sale, import windows, browser/CDN cache, runtime evidence.
+
+## 16. Почтовое событие / форма обратной связи
 
 **Запрос:** “как отправить письмо”, “форма не отправляет письмо”.
 
@@ -242,7 +254,7 @@ $image = CFile::ResizeImageGet(
 
 **Побочные эффекты:** SITE_ID, charset, спам-фильтры, очередь/агенты, обязательные поля шаблона.
 
-## 16. AJAX в компоненте / controller action
+## 17. AJAX в компоненте / controller action
 
 **Запрос:** “как сделать AJAX в компоненте”, “куда повесить ajax.php”, “как вернуть JSON”.
 
@@ -254,7 +266,7 @@ $image = CFile::ResizeImageGet(
 
 **Побочные эффекты:** CSRF, права доступа, composite/ajax mode, кешируемые параметры компонента, response headers.
 
-## 17. Обработчик события
+## 18. Обработчик события
 
 **Запрос:** “как добавить обработчик события”, “куда повесить OnAfterIBlockElementUpdate”, “как реагировать на заказ/элемент”.
 
@@ -266,7 +278,7 @@ $image = CFile::ResizeImageGet(
 
 **Побочные эффекты:** повторная регистрация, порядок обработчиков, права/контекст агента, транзакции, тяжелые операции в runtime.
 
-## 18. Catalog/sale/currency data changes
+## 19. Catalog/sale/currency data changes
 
 **Запрос:** “как обновить цену товара”, “как поменять статус заказа”, “как списать остаток”.
 
@@ -278,7 +290,7 @@ $image = CFile::ResizeImageGet(
 
 **Побочные эффекты:** пересчёты, скидки, резервы, складские документы, история заказа, оплаты/доставки, события, 1С/REST exchange.
 
-## 19. 1С / CommerceML обмен
+## 20. 1С / CommerceML обмен
 
 **Запрос:** “как настроить обмен 1С”, “почему товар из 1С есть в админке, но не на сайте”, “импорт XML прошёл, но данные не появились”.
 

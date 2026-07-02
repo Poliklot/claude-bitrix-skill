@@ -21,6 +21,7 @@
 | “Как вывести картинку/превью?” | Только HTML `width/height`, ручной путь из `/upload`. | `CFile::GetPath`, `CFile::ResizeImageGet`, project image service. |
 | “Как вывести свойство инфоблока?” | Прямой SQL в property tables. | Параметры компонента, `$arResult`, `iblock` API/ORM, `result_modifier`. |
 | “Почему не обновляется вывод?” | “Выключи весь кеш”. | Найти слой: component cache, managed/tagged cache, composite static HTML (`/bitrix/html_pages/`, `X-Bitrix-Composite`), dynamic area, cache keys. |
+| “Изучи проект и скажи как оптимизировать” | Redis/CDN/composite/global cache clear без evidence. | Открыть `project-optimization-audit.md`, собрать факты проекта и выдать audit-report: уже оптимизировано, недоработки, safe wins, runtime/perfmon-needed. |
 | “Как отправить письмо?” | Нативный `mail()` как основной путь. | Почтовые события/шаблоны, `CEvent::Send`, `Main\Mail\Event::send`, webform/project service. |
 | “Как сделать ajax?” | Самодельный endpoint без `prolog_before`, sessid, JSON policy. | Проверить project ajax/controller pattern, `bitrix_sessid`, response format, composite. |
 | “Как добавить обработчик события?” | Регистрировать анонимный код в случайном шаблоне. | `EventManager`, `local/php_interface`/local module, idempotent install/uninstall. |

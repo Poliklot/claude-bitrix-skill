@@ -159,7 +159,7 @@ Admin entrypoints:
 | PHP architecture/testing/quality | full-route | `production-best-practices.md`, `php-workflow.md`, `php-testing.md`, `php-quality.md`, `php-legacy-modernization.md` |
 | Content modules | active | `iblocks.md`, `highloadblock.md`, `webforms.md`, `blog-socialnet.md`, `forum.md`, `vote.md`, `subscribe.md` |
 | Search/SEO/cache | active | `search.md`, `seo-cache-access.md`, `cache-infra.md`, `index-cache-diagnostics.md` |
-| Admin/ops | active | `admin-ui.md`, `grid-admin-modern.md`, `pagination.md`, `operations-runbook.md`, `perfmon.md`, `update-stepper.md` |
+| Admin/ops/аудит оптимизаций | active | `admin-ui.md`, `grid-admin-modern.md`, `pagination.md`, `project-optimization-audit.md` (compact in `search-seo-ops.md`), `operations-runbook.md`, `perfmon.md`, `update-stepper.md` |
 | Commerce/shop | active after local module confirmation | `shop-task-matrix.md`, `shop-standard-components.md`, `shop-marketing-analytics.md`, `shop-automation-bizproc.md`, `catalog.md`, `sale.md`, `currency.md`, `commerce-workflows.md` |
 | 1С/CommerceML | active after component confirmation | `commerce-1c-integration.md` |
 | Full shop-core inventory | routing map | `shop-core-module-inventory.md` |
@@ -444,7 +444,7 @@ Covered by `shop-integrations-webservice.md`:
 | Bitrix24 connector | `b24connector.md`, `socialservices.md` |
 | external file storage | `clouds.md` |
 | backup/monitoring | `bitrixcloud.md`, `operations-runbook.md` |
-| performance diagnostics | `perfmon.md`, `operations-runbook.md` |
+| performance diagnostics / аудит оптимизаций | `project-optimization-audit.md` (compact in `search-seo-ops.md`), `perfmon.md`, `operations-runbook.md` |
 | перенос стендов | `operations-runbook.md`, `entities-migrations.md` |
 | agents/cron/stepper | `update-stepper.md`, `operations-runbook.md` |
 
@@ -947,7 +947,7 @@ find bitrix/templates www/bitrix/templates local/templates -path '*components/bi
 ## Общая цепочка диагностики
 
 ```text
-module installed → data exists → site/language/rights → component params/filter/sort/pagination → template/result_modifier → cache/index/SEO → JS/AJAX → runtime events/agents/integrations
+module installed → data exists → site/language/rights → component params/filter/sort/pagination → template/result_modifier → component/tagged/composite cache → SQL/ORM/N+1/images/assets → index/SEO → JS/AJAX → runtime events/agents/integrations
 ```
 
 Если симптом магазинный, добавь:

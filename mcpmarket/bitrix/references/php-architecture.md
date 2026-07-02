@@ -168,6 +168,8 @@ Boundary обязан:
 
 ## Performance baseline
 
+Для общего запроса “изучи проект и скажи как оптимизировать” используй compact `search-seo-ops.md` раздел “Аудит оптимизаций Bitrix-проекта”, затем возвращай audit-report с evidence/safe wins/runtime-needed.
+
 Проверяй:
 
 - N+1 queries in templates/result modifiers;

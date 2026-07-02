@@ -185,6 +185,24 @@ if (!Loader::includeModule('<module>')) {
 
 Проверить: `CACHE_TYPE`, `CACHE_TIME`, `CACHE_GROUPS`, `StartResultCache`, `setResultCacheKeys`, managed/tagged cache, `/bitrix/html_pages/`, `X-Bitrix-Composite`, `setFrameMode` как голосование, `createFrame`/`FrameHelper` как dynamic boundary, personalized HTML.
 
+### Project optimization audit
+
+Первый ответ: “сначала сниму карту фактических оптимизаций и bottlenecks”, а не “включите кеш/Redis/CDN”. Открыть `project-optimization-audit.md`.
+
+Формат ответа:
+
+```text
+Что уже оптимизировано: [evidence]
+Недоработки/ошибки: [priority, file, impact]
+Safe wins: [low-risk fixes]
+Нужно runtime/perfmon: [metrics required]
+Не трогать вслепую: [cache/index/data risks]
+```
+
+Проверить: component/tagged/managed/composite cache, SQL/ORM/N+1, template heavy logic, images/assets, agents/imports/stepper, search/facet/SEO indexes, shop/sale side effects.
+
+Не говорить первым шагом: “поставьте Redis”, “очистите весь кеш”, “добавьте индекс”, “включите composite” без evidence.
+
 ### Forms/mail/ajax
 
 Первый ответ:

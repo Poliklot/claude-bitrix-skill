@@ -161,6 +161,8 @@ Boundary обязан:
 
 ## Performance baseline
 
+Для общего запроса “изучи проект и скажи как оптимизировать” сначала открывай [project-optimization-audit.md](project-optimization-audit.md): он задаёт формат аудита, grep-профиль, ранжирование и границы runtime/perfmon evidence.
+
 Проверяй:
 
 - N+1 queries in templates/result modifiers;

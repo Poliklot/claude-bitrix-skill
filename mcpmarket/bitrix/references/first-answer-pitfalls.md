@@ -17,6 +17,7 @@
 | image | Только HTML `width/height`, ручной `/upload`. | `CFile::GetPath`, `CFile::ResizeImageGet`, image service. |
 | iblock property | SQL в property tables. | Параметры компонента, `$arResult`, iblock API/ORM, `result_modifier`. |
 | cache issue | “Выключи весь кеш”. | Компонентный кеш, managed tags, composite/frame, cache keys. |
+| аудит оптимизаций | Redis/CDN/composite/global clear без evidence. | Compact `search-seo-ops.md`: audit-report по уже существующим оптимизациям, недоработкам, safe wins и runtime/perfmon-needed. |
 | mail/form | Нативный `mail()` как основной путь. | Почтовые события/шаблоны, `CEvent::Send`, `Main\Mail\Event::send`, webform/service. |
 | ajax | Самодельный endpoint без sessid/policy. | Project ajax/controller pattern, `bitrix_sessid`, JSON format, composite. |
 | events | Анонимный код в шаблоне. | `EventManager`, `local/php_interface`/local module, install/uninstall. |

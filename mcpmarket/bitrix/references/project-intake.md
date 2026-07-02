@@ -32,6 +32,7 @@ rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(' local bi
 | module inventory | Нельзя обещать API отсутствующего модуля. |
 | `404.php`, `urlrewrite.php`, `SEF_*` | Диагностика routing/status. |
 | cache/composite markers | Диагностика “изменения не видны”. |
+| optimization markers | Кеши, SQL/ORM/N+1, images/assets, agents/imports и `perfmon` для audit-report. |
 | composer/phpunit/phpstan/psalm/rector | Сначала использовать tooling проекта. |
 | events/agents | Кастомная логика и фоновые задачи. |
 

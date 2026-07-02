@@ -1054,7 +1054,7 @@ composite отвечает за уже собранный HTML страницы;
 browser/CDN отвечает за внешний HTTP-кеш.
 ```
 
-Не лечи composite-проблему только `Cache::cleanDir()`, и не лечи component-result проблему только очисткой `/bitrix/html_pages/`. Сначала назови слой.
+Не лечи composite-проблему только `Cache::cleanDir()`, и не лечи component-result проблему только очисткой `/bitrix/html_pages/`. Сначала назови слой. Для общего performance-аудита смотри compact-раздел “Аудит оптимизаций Bitrix-проекта” ниже.
 
 Проверяй `X-Bitrix-Composite`, `/bitrix/html_pages/`, `?ncc=1`, `COMPOSITE_FRAME_*`, `AutomaticArea`, `setFrameMode` как голосование/adaptation flag и `createFrame`/`FrameHelper` как dynamic boundary.
 
@@ -1520,6 +1520,63 @@ php www/bitrix/bitrix.php orm:annotate
 - Если нужно передать сложные структуры, переопредели `makeArguments()` и аккуратно восстанавливай их в `getOuterParams()`.
 - `bind(0, ...)` и `bindClass(..., 0, ...)` могут запустить шаг немедленно через `execAgent()` до постановки агента.
 - CLI-команды нужно привязывать к реальному entrypoint проекта. В этом core это `www/bitrix/bitrix.php`.
+
+---
+
+
+## Source: `project-optimization-audit.md`
+
+# Аудит оптимизаций Bitrix-проекта — compact
+
+Открывай, когда пользователь просит “изучи проект и скажи как оптимизировать”, “какие оптимизации уже есть”, “найди тормоза”, “проверь кеши/производительность”. Это сквозной маршрут поверх `cache-infra`, `composite-cache`, `perfmon`, components/templates, operations и commerce references.
+
+## Формат ответа
+
+```text
+1. Что уже оптимизировано и где evidence.
+2. Какие оптимизации есть, но опасны или неполны.
+3. Где bottlenecks: SQL/ORM/N+1, component/template, cache/composite, images/assets, agents/imports, frontend, shop.
+4. Быстрые safe wins.
+5. Что требует runtime/perfmon evidence.
+6. Что нельзя менять вслепую.
+```
+
+## Быстрый read-only профиль
+
+```bash
+rg -n 'IncludeComponent\(|CACHE_TYPE|CACHE_TIME|CACHE_GROUPS|StartResultCache|AbortResultCache|setResultCacheKeys|RegisterTag|clearByTag|TaggedCache|Composite|createFrame|CIBlockElement::GetList|CIBlockSection::GetList|::getList\(|DataManager::getList|ResizeImageGet|Asset::getInstance|addCss|addJs|CAgent::AddAgent|Stepper|cron|import|exchange|clearCache|cleanDir' \
+  . --glob '*.php' --glob '*.js' --glob '!upload/**' --glob '!bitrix/cache/**' --glob '!www/bitrix/cache/**'
+```
+
+```bash
+rg -n 'foreach\s*\(|while\s*\(|Option::get|Loader::includeModule|GetUserGroupArray|IsAuthorized|GetList|::getList|ResizeImageGet' \
+  local/templates bitrix/templates www/bitrix/templates local/components \
+  --glob 'template.php' --glob 'result_modifier.php' --glob 'component_epilog.php'
+```
+
+## Карта оптимизаций
+
+| Слой | Evidence | Риск ошибки |
+|---|---|---|
+| Component cache | `CACHE_TYPE/TIME/GROUPS`, `StartResultCache` | общий cache key, `CACHE_TYPE=N` без причины, забытый `CACHE_GROUPS` |
+| Tagged/managed cache | `TaggedCache`, `RegisterTag`, `clearByTag` | слишком широкий `cleanDir/cleanAll`, разные `cacheDir` |
+| Composite | `setFrameMode`, `createFrame`, `X-Bitrix-Composite` | персональные данные в static HTML, `setFrameMode(true)` принят за dynamic boundary |
+| SQL/ORM | `GetList/getList`, perfmon SQL | N+1, select `*`, нет `limit`, full scan |
+| Templates/frontend | `template.php`, `Asset`, images | тяжёлая логика в шаблоне, дубли assets, resize без стратегии |
+| Agents/imports | `CAgent`, `Stepper`, imports | hit-mode, нет batch/resume/log, полный cache clear после импорта |
+| Shop/catalog/sale | catalog/sale components/API | raw SQL, скидки/остатки/корзина в циклах, facet/search не обновлён |
+
+## Runtime/perfmon evidence
+
+Используй `perfmon_hit_list.php`, `perfmon_sql_list.php`, `perfmon_cache_list.php`, `perfmon_comp_list.php`, `perfmon_explain.php`, headers `X-Bitrix-Composite`, `?ncc=1`, browser network. Без runtime evidence формулируй как “кандидат на оптимизацию”, а не “точно тормозит”.
+
+## Не советовать первым шагом
+
+- Redis/Memcached/CDN без доказательства bottleneck.
+- Глобальный cache clear или отключение кеша.
+- Composite без проверки персонализации.
+- DB index без `EXPLAIN`/perfmon.
+- Полный reindex/rebuild на production без окна и rollback.
 
 ---
 

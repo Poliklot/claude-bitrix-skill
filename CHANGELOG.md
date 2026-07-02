@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.32.0] — 2026-07-02
+
+### Added
+- `bitrix/references/project-optimization-audit.md` — сквозной playbook для запроса “изучи проект и скажи как оптимизировать”: карта уже существующих оптимизаций, ошибки cache/composite/N+1/images/agents/imports/shop, safe wins, runtime/perfmon evidence и формат audit-report.
+
+### Changed
+- Full и MCP Market compact-навигация, `core-grep-cookbook`, `developer-cards`, `answer-contracts`, `task-playbooks` и eval-набор связаны с новым маршрутом аудита оптимизаций.
+
 ## [1.31.0] — 2026-07-01
 
 ### Added
@@ -410,7 +418,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.31.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.32.0...HEAD
+[1.32.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.31.0...v1.32.0
 [1.31.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.30.0...v1.31.0
 [1.30.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.29.0...v1.30.0
 [1.29.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.28.0...v1.29.0

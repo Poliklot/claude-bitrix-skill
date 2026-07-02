@@ -28,6 +28,7 @@
 | “Напиши код” | Code answer: module facts, `use`, checks, escaping/filtering, cache/CSRF caveats. |
 | “Есть ли sale/catalog/1C?” | Module-dependent: проверить module dir/version + `Loader`; если нет — deferred/fallback. |
 | “Поменяй данные/права/контент” | Confirmation block from `SKILL.md` before direct data mutation. |
+| “Изучи проект и оптимизации” | Optimization audit: что уже оптимизировано → недоработки → safe wins → runtime/perfmon-needed → что не трогать вслепую. |
 
 ## Частые контракты
 
@@ -36,6 +37,7 @@
 - **Components:** найти `IncludeComponent`, params, template in `local/templates/.../components`; HTML — `template.php`, data — `result_modifier`/class, page effects — `component_epilog`.
 - **Iblock property:** проверить `PROPERTY_CODE`, `FIELD_CODE`, `DISPLAY_PROPERTIES`, `$arResult`, `result_modifier`; не SQL.
 - **Cache/composite:** назвать слой: component cache, `CACHE_GROUPS`, `setResultCacheKeys`, tagged cache, composite frame; не “выключи весь кеш”.
+- **Project optimization audit:** использовать compact `search-seo-ops.md` + `core-grep-cookbook.md`; не начинать с Redis/CDN/global clear без evidence.
 - **Forms/mail/ajax:** request via `Context`, validation, `check_bitrix_sessid`; mail events/templates; project ajax/controller pattern, JSON, auth; не `mail()`/endpoint without sessid.
 - **Sale/catalog:** сначала `catalog`/`sale`/`currency` module check; API only, учесть events/recalc/discount/reserve/payment/shipment side effects.
 - **1С/CommerceML:** проверить `checkauth → init → file → import`, cookies/session, temp files, XML_ID/CML2_LINK, logs; не “просто загрузи XML”.

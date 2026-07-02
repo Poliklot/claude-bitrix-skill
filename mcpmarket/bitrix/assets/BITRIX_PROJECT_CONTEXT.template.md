@@ -58,6 +58,20 @@
 - Ручные meta/head вставки:
 - Composite/cache особенности (`setFrameMode`, `createFrame`, `/bitrix/html_pages/`, `X-Bitrix-Composite`, dynamic blocks):
 
+## Кеши и оптимизации
+
+- Политика component cache:
+- Политика tagged/managed cache:
+- Статус composite (`setFrameMode`, `createFrame`, `/bitrix/html_pages/`, `X-Bitrix-Composite`):
+- Известные персональные/dynamic blocks:
+- SQL/ORM/N+1 hotspots:
+- Политика изображений/resize/lazy:
+- Политика frontend assets:
+- Agents/cron/stepper/import performance notes:
+- Статус `perfmon`/runtime evidence:
+- Safe optimization candidates:
+- Риски оптимизаций / открытые вопросы:
+
 ## Компоненты и шаблоны компонентов
 
 | Page/route | Component | Template | Override path | Notes |

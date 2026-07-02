@@ -7,7 +7,7 @@
 ## Текущий статус
 
 На дату этого плана:
-- актуальная версия навыка: `1.31.0`;
+- актуальная версия навыка: `1.32.0`;
 - точка входа: `bitrix/SKILL.md`;
 - reference-слой: `bitrix/references/*.md`;
 - non-commerce reference-слой прошёл ревизию против установленного core;
@@ -27,6 +27,7 @@
 - runtime evidence kit получил runnable preflight-helper `scripts/bitrix_runtime_preflight.py`, режим `init_runtime_evidence.py --all`, sample blocked evidence pack и короткие команды `make validate`, `make evidence-all`, `make release-check`;
 - пагинационный слой переаудирован по `main` 26.150.0 и shop-core: legacy `CDBResult`, D7 `PageNavigation`, `system.pagenavigation`, `main.pagenavigation`, admin/grid и ajax/lazy load.
 - composite/cache слой в версии `1.31.0` вынесен в отдельный `composite-cache.md` и сверен по `main` 26.150.0: `setFrameMode` как голосование, `COMPOSITE_FRAME_MODE/TYPE` и `AutomaticArea`, `createFrame`/`FrameHelper` как dynamic boundary, `/bitrix/html_pages/`, `X-Bitrix-Composite`, персонализация и second request/cache pass.
+- добавлен следующий слой аудита оптимизаций: `project-optimization-audit.md` связывает кеши, composite, perfmon, SQL/ORM/N+1, templates/frontend, agents/imports и shop side effects в единый audit-report для запроса “как оптимизировать проект”.
 
 ## Активный и условный контур
 

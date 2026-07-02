@@ -20,16 +20,17 @@
 - [5. Шаблоны сайта и include areas](#5-шаблоны-сайта-и-include-areas)
 - [6. Iblock/HL: свойства, элементы, связи](#6-iblockhl-свойства-элементы-связи)
 - [7. Кеш, composite, персонализация](#7-кеш-composite-персонализация)
-- [8. Routing, SEF, 404, redirect](#8-routing-sef-404-redirect)
-- [9. Request, пользователь, права, CSRF](#9-request-пользователь-права-csrf)
-- [10. Events, handlers, agents, cron/stepper](#10-events-handlers-agents-cronstepper)
-- [11. AJAX, controllers, JSON](#11-ajax-controllers-json)
-- [12. Почта, webforms, уведомления](#12-почта-webforms-уведомления)
-- [13. Search/SEO/index/cache](#13-searchseoindexcache)
-- [14. Sale/catalog/currency: только после module check](#14-salecatalogcurrency-только-после-module-check)
-- [15. 1С / CommerceML](#15-1с--commerceml)
-- [16. Админка, grid, custom UI](#16-админка-grid-custom-ui)
-- [17. Логи и runtime hooks](#17-логи-и-runtime-hooks)
+- [8. Аудит оптимизаций проекта](#8-аудит-оптимизаций-проекта)
+- [9. Routing, SEF, 404, redirect](#9-routing-sef-404-redirect)
+- [10. Request, пользователь, права, CSRF](#10-request-пользователь-права-csrf)
+- [11. Events, handlers, agents, cron/stepper](#11-events-handlers-agents-cronstepper)
+- [12. AJAX, controllers, JSON](#12-ajax-controllers-json)
+- [13. Почта, webforms, уведомления](#13-почта-webforms-уведомления)
+- [14. Search/SEO/index/cache](#14-searchseoindexcache)
+- [15. Sale/catalog/currency: только после module check](#15-salecatalogcurrency-только-после-module-check)
+- [16. 1С / CommerceML](#16-1с--commerceml)
+- [17. Админка, grid, custom UI](#17-админка-grid-custom-ui)
+- [18. Логи и runtime hooks](#18-логи-и-runtime-hooks)
 
 ## Быстрый шаблон команды
 
@@ -189,7 +190,23 @@ rg -n 'Composite|StaticHtmlCache|Composite\\Page|AutomaticArea|COMPOSITE_FRAME_M
 
 Правило ответа: не начинать с “выключи весь кеш”. Сначала назвать слой: параметры компонента, ключ кеша, `CACHE_GROUPS`, managed/tagged cache, composite static HTML (`/bitrix/html_pages/`, `X-Bitrix-Composite`, `Composite\Page`), `setFrameMode` vote/adaptation, `AutomaticArea`/`COMPOSITE_FRAME_*`, dynamic boundary (`createFrame`/`FrameHelper`), result cache keys, ajax payload. Для composite деталей открывай `composite-cache.md`.
 
-## 8. Routing, SEF, 404, redirect
+
+## 8. Аудит оптимизаций проекта
+
+```bash
+rg -n 'IncludeComponent\(|CACHE_TYPE|CACHE_TIME|CACHE_GROUPS|StartResultCache|AbortResultCache|setResultCacheKeys|RegisterTag|clearByTag|TaggedCache|Composite|createFrame|CIBlockElement::GetList|CIBlockSection::GetList|::getList\(|DataManager::getList|ResizeImageGet|Asset::getInstance|addCss|addJs|CAgent::AddAgent|Stepper|cron|import|exchange|clearCache|cleanDir' \
+  . --glob '*.php' --glob '*.js' --glob '!upload/**' --glob '!bitrix/cache/**' --glob '!www/bitrix/cache/**'
+```
+
+```bash
+rg -n 'foreach\s*\(|while\s*\(|Option::get|Loader::includeModule|GetUserGroupArray|IsAuthorized|GetList|::getList|ResizeImageGet' \
+  local/templates bitrix/templates www/bitrix/templates local/components \
+  --glob 'template.php' --glob 'result_modifier.php' --glob 'component_epilog.php'
+```
+
+Правило ответа: для общего “как оптимизировать проект” открывай `project-optimization-audit.md` и возвращай audit-report: что уже оптимизировано, какие оптимизации сломаны/опасны, safe wins, что требует `perfmon`/runtime evidence, что нельзя менять вслепую. Не начинай с Redis/CDN/composite/global clear без evidence.
+
+## 9. Routing, SEF, 404, redirect
 
 ```bash
 rg -n 'CHTTP::SetStatus|ERROR_404|SET_STATUS_404|SHOW_404|LocalRedirect|GetCurPage|GetCurDir|GetCurPageParam|SEF_MODE|SEF_FOLDER|SEF_URL_TEMPLATES|urlrewrite' \
@@ -204,7 +221,7 @@ find . -maxdepth 3 -name '404.php' -type f -print
 
 Для 404 проверять статус, `ERROR_404`, проектный `404.php`, strict-параметры компонента и кеш. Для redirect — `LocalRedirect`, отсутствие вывода до headers, защиту от open redirect.
 
-## 9. Request, пользователь, права, CSRF
+## 10. Request, пользователь, права, CSRF
 
 ```bash
 rg -n 'Context::getCurrent|getRequest\(|\$_REQUEST|\$_GET|\$_POST|check_bitrix_sessid|bitrix_sessid_post|bitrix_sessid_get|sessid|global \$USER|IsAuthorized|GetID\(|GetUserGroupArray|IsAdmin|Authorize' \
@@ -213,7 +230,7 @@ rg -n 'Context::getCurrent|getRequest\(|\$_REQUEST|\$_GET|\$_POST|check_bitrix_s
 
 Если находишь `$_REQUEST`/`$_POST`, не объявляй сразу багом: старый Bitrix-код так часто написан. Для нового ответа всё равно предлагать D7 `Context`, фильтрацию и CSRF для POST.
 
-## 10. Events, handlers, agents, cron/stepper
+## 11. Events, handlers, agents, cron/stepper
 
 ```bash
 rg -n 'EventManager::getInstance|addEventHandler|registerEventHandler|RegisterModuleDependences|UnRegisterModuleDependences|On[A-Z][A-Za-z0-9_]+' \
@@ -227,7 +244,7 @@ rg -n 'CAgent::AddAgent|CAgent::RemoveAgent|CheckAgents|Agent|Stepper|Option::se
 
 Для нового обработчика предпочитать локальный модуль/install step или осознанный `local/php_interface`, а не случайный код в шаблоне.
 
-## 11. AJAX, controllers, JSON
+## 12. AJAX, controllers, JSON
 
 ```bash
 rg -n 'prolog_before|ajax\.php|BX\.ajax|runComponentAction|signedParameters|bitrix_sessid|check_bitrix_sessid|Json|JsonResponse|Controller|ActionFilter|HttpResponse|Application::getInstance\(\)->getContext\(\)->getResponse' \
@@ -236,7 +253,7 @@ rg -n 'prolog_before|ajax\.php|BX\.ajax|runComponentAction|signedParameters|bitr
 
 Проверять проектный паттерн: классический endpoint с `prolog_before.php`, component action, D7 controller, формат JSON, CSRF, авторизация, composite/ajax mode.
 
-## 12. Почта, webforms, уведомления
+## 13. Почта, webforms, уведомления
 
 ```bash
 rg -n 'CEvent::Send|CEvent::SendImmediate|Main\\Mail\\Event::send|Bitrix\\Main\\Mail|mail\(|EVENT_NAME|MESSAGE_ID|LID|SITE_ID|CForm|FORM_ID|webform|form.result|bitrix:form' \
@@ -245,7 +262,7 @@ rg -n 'CEvent::Send|CEvent::SendImmediate|Main\\Mail\\Event::send|Bitrix\\Main\\
 
 Если задача “форма не отправляет письмо”, проверить event name, почтовый шаблон, `SITE_ID`, обязательные поля, очередь/агенты, project mail service и логи. Не начинать с нативного `mail()`.
 
-## 13. Search/SEO/index/cache
+## 14. Search/SEO/index/cache
 
 ```bash
 rg -n 'CSearch|Search\\|UpdateSearch|BeforeIndex|OnSearch|SetPageProperty|SetTitle|SET_META|SET_BROWSER_TITLE|SET_CANONICAL_URL|robots|canonical|sitemap|seo' \
@@ -254,7 +271,7 @@ rg -n 'CSearch|Search\\|UpdateSearch|BeforeIndex|OnSearch|SetPageProperty|SetTit
 
 Для “в админке есть, на сайте нет” идти по цепочке: источник данных → права/site binding → параметры компонента → фильтр/сортировка/пагинация → `result_modifier.php` → шаблон → кеш/индекс/SEO.
 
-## 14. Sale/catalog/currency: только после module check
+## 15. Sale/catalog/currency: только после module check
 
 ```bash
 for m in catalog sale currency; do
@@ -277,7 +294,7 @@ find www/bitrix/modules -path '*/install/components/bitrix/*' -type f \
 
 Не отвечать direct SQL для корзины, заказов, оплат, доставок, цен и остатков: там события, пересчёты, резервы, статусы, скидки, обмены.
 
-## 15. 1С / CommerceML
+## 16. 1С / CommerceML
 
 ```bash
 find www/bitrix/modules -path '*/install/components/bitrix/*1c*' -type f | sort
@@ -290,7 +307,7 @@ rg -n 'catalog\.import\.1c|catalog\.export\.1c|sale\.export\.1c|BX_CML2|CML2_LIN
 
 Для диагностики обмена проверять flow `checkauth → init → file → import`, cookies/session, temp files, XML_ID/CML2_LINK, права, размер чанка, zip и exchange logs.
 
-## 16. Админка, grid, custom UI
+## 17. Админка, grid, custom UI
 
 ```bash
 rg -n 'AdminList|CAdminList|CAdminFilter|Grid|UI\\Buttons|UI\\Toolbar|ui\.buttons|main\.ui\.grid|main\.ui\.filter|bitrix:main\.ui' \
@@ -299,7 +316,7 @@ rg -n 'AdminList|CAdminList|CAdminFilter|Grid|UI\\Buttons|UI\\Toolbar|ui\.button
 
 Если задача про кнопку/колонку/фильтр в админке, проверять права, module admin files, grid id, filter id, actions и sessid.
 
-## 17. Логи и runtime hooks
+## 18. Логи и runtime hooks
 
 ```bash
 rg -n 'AddMessage2Log|Debug::writeToFile|Logger|Monolog|LOG_FILENAME|error_log|Exception|Application::getExceptionHandler' \

@@ -137,7 +137,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 Установить конкретную версию:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.31.0 --claude
+curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.32.0 --claude
 ```
 
 То же самое для PowerShell:
@@ -146,7 +146,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Claude
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Codex
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Both
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.31.0 -Claude
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.32.0 -Claude
 ```
 
 </details>
@@ -157,6 +157,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 |---|---|
 | Ядро и модули | `main`, `iblock`, ORM, Loader, события, слой БД, сессии, RBAC, component/tagged/composite cache, пошаговые процессы |
 | Аудит проекта | быстрый разбор реального проекта, `BITRIX_PROJECT_CONTEXT.md`, версии модулей, `local/*`, компоненты, шаблоны, events/agents, tooling |
+| Аудит оптимизаций | что уже оптимизировано, ошибки кешей/composite/N+1/images/assets/agents/imports, safe wins, runtime/perfmon evidence |
 | Компоненты и шаблоны | контракты стандартных компонентов, скопированные шаблоны, `result_modifier.php`, `component_epilog.php`, AJAX, пагинация |
 | Контент | инфоблоки, HL-блоки, UF, формы, блог, форум, опросы, landing, fileman, поиск, SEO |
 | Интернет-магазин | `catalog`, `sale`, `currency`, SKU/торговые предложения, цены, остатки, корзина, оформление заказа, заказы, оплаты, доставка, скидки |

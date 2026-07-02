@@ -81,6 +81,7 @@
 | B057 | Evidence pack готов, как проверить перед релизом? | `release-gate`, `runtime-smoke-verification` | `python3 scripts/validate_runtime_evidence.py ... --package P1`, проверить summary/scenarios/secrets | принять папку без validation |
 | B058 | Как правильно подготовить компонент к композитному кешу? | `components`, `templates`, `composite-cache` | `setFrameMode(true)` = голосование, персональные части через `createFrame`, dynamic areas не вкладывать, verification по headers | сказать что `setFrameMode(true)` делает компонент динамическим |
 | B059 | Корзина/имя пользователя моргает или показывает чужие данные при композите | `developer-cards`, `security`, `composite-cache`, `cache-infra` | dynamic area с безопасной заглушкой, `CACHE_TYPE=N` для персонального блока, проверить guest/user A/user B, `X-Bitrix-Composite` | просто очистить весь кеш |
+| B060 | Изучи Bitrix-проект и скажи, как его можно оптимизировать и какие оптимизации уже сломаны | `project-optimization-audit`, `core-grep-cookbook`, `perfmon`, `cache-infra`, `components` | audit-report: что уже оптимизировано, ошибки cache/composite/N+1/images/agents, safe wins, что требует runtime/perfmon evidence | сразу советовать Redis/CDN/очистку всего кеша без чтения проекта |
 
 ## Expected answer skeletons
 

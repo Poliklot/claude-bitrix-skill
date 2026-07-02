@@ -14,7 +14,7 @@
 | Users/RBAC/auth/session/security/socialservices | `users-security.md` |
 | Blog/forum/vote/webforms/mail/subscribe | `content-modules.md` |
 | Landing/sitecorporate/photogallery/fileman/location/messageservice/clouds/mobileapp/b24connector/translate | `site-cloud-mobile.md`, `shop-core-tail-modules.md` |
-| Search/SEO/cache/composite/update/perf/operations | `search-seo-ops.md`, plus `components-admin-ui.md` and `users-security.md` for dynamic/personal blocks |
+| Search/SEO/cache/composite/аудит оптимизаций/update/perf/operations | `search-seo-ops.md`, plus `components-admin-ui.md` for component/template bottlenecks and `users-security.md` for dynamic/personal blocks |
 | REST/webhooks/apps/events | `integrations-rest.md` |
 | Commerce: catalog/sale/currency/shop components/marketing/bizproc/webservice/1C | `commerce-shop.md` |
 
@@ -81,6 +81,7 @@
 | `pitfalls-matrix.md` | `core-routing.md` |
 | `production-best-practices.md` | `core-routing.md` |
 | `project-intake.md` | `project-intake.md` |
+| `project-optimization-audit.md` | `search-seo-ops.md`, `core-grep-cookbook.md`, `developer-cards.md` |
 | `push-pull.md` | `commerce-shop.md` |
 | `reference-map.md` | `reference-map.md` |
 | `release-gate.md` | `release-gate.md` |
