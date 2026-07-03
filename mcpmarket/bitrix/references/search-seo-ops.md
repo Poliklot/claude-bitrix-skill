@@ -1588,6 +1588,52 @@ rg -n 'foreach\s*\(|while\s*\(|Option::get|Loader::includeModule|GetUserGroupArr
 
 ---
 
+
+## Source: `db-orm-performance.md`
+
+# DB/ORM/IBlock performance — compact
+
+Маршрут: hot page → perfmon/SQL evidence → component/template/service → select/filter/order/limit/cache → preload/batch → EXPLAIN/index only after evidence.
+
+Grep:
+
+```bash
+rg -n 'CIBlockElement::GetList|CIBlockSection::GetList|::getList\(|DataManager::getList|query\(|SqlQuery|->Query\(|SELECT \*|PROPERTY_CODE|FIELD_CODE|CACHE_TYPE' local local/components local/templates bitrix/templates www/bitrix/templates --glob '*.php'
+rg -n 'foreach\s*\(|while\s*\(|GetList|::getList|Option::get|Loader::includeModule|GetUserGroupArray' local/templates bitrix/templates www/bitrix/templates local/components --glob 'template.php' --glob 'result_modifier.php' --glob 'component_epilog.php'
+```
+
+Красные флаги: `GetList/getList` внутри `foreach`, `select *`, все свойства в list component, отсутствие `limit/pagination`, сортировка по тяжёлому вычисляемому полю, repeated rights/options/module calls. Safe pattern: collect ids → one query/preload → map by id → render → perfmon SQL count/time.
+
+Индекс предлагай только после slow SQL + `EXPLAIN` + write-side plan. Business writes через API, не raw SQL.
+
+## Source: `frontend-assets-performance.md`
+
+# Frontend/assets/images performance — compact
+
+Маршрут: template/component → Asset/CFile/resize → composite/static HTML → browser/CDN/network. Не лечи CDN-ом до проверки того, что реально грузится.
+
+Grep:
+
+```bash
+rg -n 'Asset::getInstance|addCss|addJs|addString|ShowHead|ShowBodyScripts|template_styles.css|script.js|<script|<link|ResizeImageGet|CFile::GetPath|srcset|loading="lazy"|webp|upload/resize_cache' local bitrix/templates www/bitrix/templates --glob '*.php' --glob '*.js' --glob '*.css'
+```
+
+Проверять: дубли CSS/JS, ручные `<script>/<link>` в component template, user-specific inline JS в composite, `CFile::ResizeImageGet`, real width/height, lazy/srcset/webp, cloud handler, cache headers и asset versioning. Browser/CDN cache — только после проверки common cache key и invalidation strategy.
+
+## Source: `agents-imports-performance.md`
+
+# Agents/imports/cron/stepper performance — compact
+
+Тяжёлые операции: HTTP/admin action → enqueue/state → agent/cron/stepper/CLI → batch → checkpoint/log → targeted cache/index invalidation.
+
+Grep:
+
+```bash
+rg -n 'CAgent::AddAgent|CheckAgents|agents_use_crontab|Stepper|bindClass|execAgent|cron|set_time_limit|ignore_user_abort|import|exchange|CommerceML|checkauth|mode=import|XML_ID|CML2_LINK|clearCache|clearByTag|ReIndexAll' local local/php_interface bitrix/php_interface www/bitrix/php_interface local/modules --glob '*.php'
+```
+
+Красные флаги: full scan без limit, import через HTTP, нет external id/idempotency/checkpoint, errors только в echo, full cache clear после каждой строки, `set_time_limit(0)` вместо архитектуры. Batch pattern: next batch → process N rows → save checkpoint → schedule next → invalidate affected tags once per batch/end → log correlation id.
+
 ## Source: `perfmon.md`
 
 # Диагностика производительности (модуль perfmon)

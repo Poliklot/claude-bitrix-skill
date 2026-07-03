@@ -26,6 +26,7 @@
 |---|---|
 | `access-rbac.md` | `users-security.md` |
 | `admin-ui.md` | `components-admin-ui.md` |
+| `agents-imports-performance.md` | `search-seo-ops.md`, `core-routing.md` |
 | `answer-contracts.md` | `answer-contracts.md` |
 | `b24connector.md` | `site-cloud-mobile.md` |
 | `behavior-routing.md` | `behavior-routing.md` |
@@ -44,6 +45,7 @@
 | `currency.md` | `commerce-shop.md` |
 | `custom-uf-types.md` | `content-data.md` |
 | `database-layer.md` | `php-architecture.md` |
+| `db-orm-performance.md` | `search-seo-ops.md`, `php-architecture.md` |
 | `developer-cards.md` | `developer-cards.md` |
 | `developer-primitives.md` | `developer-primitives.md` |
 | `diagnostic-visibility.md` | `search-seo-ops.md` |
@@ -54,6 +56,7 @@
 | `fileman.md` | `site-cloud-mobile.md` |
 | `first-answer-pitfalls.md` | `first-answer-pitfalls.md` |
 | `forum.md` | `content-modules.md` |
+| `frontend-assets-performance.md` | `search-seo-ops.md`, `components-admin-ui.md` |
 | `grid-admin-modern.md` | `components-admin-ui.md` |
 | `highloadblock.md` | `content-data.md` |
 | `http.md` | `php-architecture.md` |
@@ -98,6 +101,7 @@
 | `shop-core-tail-modules.md` | `shop-core-tail-modules.md` |
 | `shop-integrations-webservice.md` | `commerce-shop.md` |
 | `shop-marketing-analytics.md` | `commerce-shop.md` |
+| `shop-performance.md` | `commerce-shop.md`, `search-seo-ops.md` |
 | `shop-standard-components.md` | `commerce-shop.md` |
 | `shop-task-matrix.md` | `core-routing.md` |
 | `sitecorporate.md` | `site-cloud-mobile.md` |

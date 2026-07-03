@@ -4495,3 +4495,24 @@ var_dump($channels);
 - **Токен канала не статичный**: он ротируется. Не кешируй токен на клиенте — получай через JS-инициализацию Bitrix.
 - **В `\Bitrix\Pull\Event::add()` первый параметр** может быть `int` (один userId) или `int[]` (массив). Строки не принимаются — только целые числа.
 - **SSE и Long Polling держат соединение** — не вызывай `Event::add()` в цикле с тысячами пользователей синхронно. Используй фоновые задачи (агенты, очереди) для массовой рассылки.
+
+
+---
+
+## Source: `shop-performance.md`
+
+# Catalog/sale/shop performance — compact
+
+Открывай только после module check `catalog`, `sale`, `currency`. Маршрут: product/offers/prices/stock → component params/cache/facet → basket/discount/order lifecycle → composite/personal blocks.
+
+Grep:
+
+```bash
+rg -n 'catalog\.section|catalog\.element|catalog\.smart\.filter|sale\.basket|sale\.order|PRICE_CODE|OFFERS_|SKU|CML2_LINK|AVAILABLE|QUANTITY|DISCOUNT|Basket|Order|Sale\\|Catalog\\|CACHE_TYPE|CACHE_GROUPS|FACET|Facet|clearByTag' local bitrix/templates www/bitrix/templates local/components --glob '*.php'
+```
+
+Проверять в catalog list/detail: `CACHE_TYPE/TIME/GROUPS`, `PROPERTY_CODE`, `OFFERS_PROPERTY_CODE`, `PRICE_CODE`, stable sort/pagination, SKU/offers preload, image resize/lazy, `catalog.smart.filter` и facet index, composite для цен/корзины/региона.
+
+Красные флаги: price/stock/discount calls в template loop, offers по одному товару, user/group/region price в общем cache/composite, raw SQL по `b_catalog_*`/`b_sale_*`, полный facet/search rebuild на production без окна.
+
+Safe wins: сузить property/price lists, preload offers/prices/stock, вынести персональные blocks в dynamic area, проверить facet/search indexes, heavy recalculation/import — в stepper/CLI.
