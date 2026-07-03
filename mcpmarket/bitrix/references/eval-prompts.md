@@ -59,5 +59,10 @@
 
 | B053 | Композитный кеш компонента | `setFrameMode(true)` = vote, `createFrame` = dynamic, headers verification | say setFrameMode makes dynamic |
 | B054 | Корзина моргает при композите | dynamic area stub, `CACHE_TYPE=N`, guest/user A/user B | clear all cache only |
+| B060 | Аудит оптимизаций проекта | `search-seo-ops` + static helper + evidence pack | Redis/CDN/clear all cache без чтения проекта |
+| B061 | N+1 в шаблоне каталога | `search-seo-ops` db-orm + perfmon + preload/map | index/raw SQL first |
+| B062 | Каталог/filter тормозит после импорта | `commerce-shop` shop-performance + `search-seo-ops` agents/perfmon | full production rebuild first |
+| B063 | Agents/imports грузят сайт | `search-seo-ops` agents-imports + operations/stepper | `set_time_limit(0)` as fix |
+| B064 | Тяжёлые images/JS | `search-seo-ops` frontend-assets + components-admin-ui | CDN first |
 
 Gate: перед релизом бытового слоя выбрать минимум 15 prompt из разных доменов; `fail = 0`. Полный checklist — `release-gate.md`.

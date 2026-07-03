@@ -159,6 +159,11 @@ grep -R "behavior-routing\\|project-intake\\|reference-map\\|developer-primitive
 | B046 | 1C/CommerceML |
 | B053 | runtime smoke boundary |
 | B057 | evidence validator |
+| B060 | optimization audit report |
+| B061 | DB/ORM/N+1 optimization |
+| B062 | shop/filter optimization |
+| B063 | agents/imports optimization |
+| B064 | frontend/assets optimization |
 
 Оценка:
 

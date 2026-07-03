@@ -9,11 +9,13 @@
 - `bitrix/assets/optimization-audit-report.template.md` и MCP Market copy — шаблон итогового отчёта по оптимизациям.
 - `db-orm-performance.md`, `frontend-assets-performance.md`, `agents-imports-performance.md`, `shop-performance.md` — углублённая база по DB/ORM/N+1, images/assets, agents/imports/cron/stepper и catalog/sale/shop bottlenecks.
 - `scripts/init_optimization_evidence.py`, `scripts/validate_optimization_evidence.py`, шаблоны `bitrix/assets/optimization-evidence/*` и `examples/optimization-evidence/sample-candidate/` — воспроизводимый evidence pack для findings аудита оптимизаций.
+- Eval prompts `B061–B064` для DB/ORM/N+1, catalog/filter, agents/imports и frontend/assets optimization routes.
 
 ### Changed
 - `project-optimization-audit.md`, README и Makefile подключены к `make optimization-audit`; `validate_skill.py` теперь проверяет наличие optimization-audit helper/template.
 - Full и MCP Market compact-навигация связаны с новыми optimization references, включая compact-блоки в `search-seo-ops.md` и `commerce-shop.md`.
 - Makefile, release gate и `validate_skill.py` теперь проверяют optimization evidence templates, initializer, validator и sample candidate pack.
+- Release gate и recommended eval set расширены optimization-аудитом `B060–B064`, чтобы регрессия ловила Redis/CDN/index/rebuild/cache-clear anti-patterns.
 
 ## [1.32.0] — 2026-07-02
 

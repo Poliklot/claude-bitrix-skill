@@ -79,6 +79,11 @@ RECOMMENDED_EVAL_IDS = [
     "B046",
     "B053",
     "B057",
+    "B060",
+    "B061",
+    "B062",
+    "B063",
+    "B064",
 ]
 
 REQUIRED_DEVELOPER_CARD_TERMS: list[tuple[str, list[str]]] = [
