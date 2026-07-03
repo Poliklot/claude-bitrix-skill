@@ -14,7 +14,7 @@ description: >-
   local core and `local/*`; missing optional modules are deferred.
 metadata:
   author: poliklot
-  version: "1.32.0"
+  version: "1.33.0"
 ---
 
 # Bitrix Expert Skill
@@ -32,7 +32,7 @@ Designed for Claude Code and Codex on 1C-Bitrix CMS projects.
 
 Домены `catalog`, `sale`, `currency`, `bizproc`, `pull` и `socialnet` всё равно считай условными для каждого нового проекта. Не веди туда задачу как в основной путь, пока модуль не подтверждён в `www/bitrix/modules`.
 
-Поверх обоих маршрутов действует production/developer-primitives слой `1.32.0`: best practices, pitfalls matrix, tail module routing и runtime smoke verification. Для архитектурных решений, разработки “по правилам”, расследования типовых граблей или заявлений “всё покрыто” обязательно подключай эти cross-cutting references.
+Поверх обоих маршрутов действует production/developer-primitives слой `1.33.0`: best practices, pitfalls matrix, tail module routing и runtime smoke verification. Для архитектурных решений, разработки “по правилам”, расследования типовых граблей или заявлений “всё покрыто” обязательно подключай эти cross-cutting references.
 
 ## Источник истины
 

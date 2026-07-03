@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.33.0] — 2026-07-03
+
 ### Added
 - `scripts/bitrix_static_optimization_audit.py` — read-only статический helper для Markdown/JSON-аудита оптимизаций Bitrix-проекта.
 - `bitrix/assets/optimization-audit-report.template.md` и MCP Market copy — шаблон итогового отчёта по оптимизациям.
@@ -431,7 +433,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.32.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.33.0...HEAD
+[1.33.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.32.0...v1.33.0
 [1.32.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.31.0...v1.32.0
 [1.31.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.30.0...v1.31.0
 [1.30.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.29.0...v1.30.0
