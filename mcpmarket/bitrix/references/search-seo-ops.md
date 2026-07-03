@@ -1543,6 +1543,14 @@ php www/bitrix/bitrix.php orm:annotate
 
 ## Быстрый read-only профиль
 
+Если доступен full repo helper, запускай:
+
+```bash
+python3 scripts/bitrix_static_optimization_audit.py /path/to/project --output /tmp/bitrix-optimization-audit.md
+```
+
+Если helper недоступен, используй grep:
+
 ```bash
 rg -n 'IncludeComponent\(|CACHE_TYPE|CACHE_TIME|CACHE_GROUPS|StartResultCache|AbortResultCache|setResultCacheKeys|RegisterTag|clearByTag|TaggedCache|Composite|createFrame|CIBlockElement::GetList|CIBlockSection::GetList|::getList\(|DataManager::getList|ResizeImageGet|Asset::getInstance|addCss|addJs|CAgent::AddAgent|Stepper|cron|import|exchange|clearCache|cleanDir' \
   . --glob '*.php' --glob '*.js' --glob '!upload/**' --glob '!bitrix/cache/**' --glob '!www/bitrix/cache/**'

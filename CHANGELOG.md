@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Added
+- `scripts/bitrix_static_optimization_audit.py` — read-only статический helper для Markdown/JSON-аудита оптимизаций Bitrix-проекта.
+- `bitrix/assets/optimization-audit-report.template.md` и MCP Market copy — шаблон итогового отчёта по оптимизациям.
+
+### Changed
+- `project-optimization-audit.md`, README и Makefile подключены к `make optimization-audit`; `validate_skill.py` теперь проверяет наличие optimization-audit helper/template.
+
 ## [1.32.0] — 2026-07-02
 
 ### Added

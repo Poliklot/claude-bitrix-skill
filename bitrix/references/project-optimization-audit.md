@@ -40,6 +40,16 @@ Baseline для этого слоя сверен по локальному core 
 
 ## 2. Read-only маршрут аудита
 
+Если есть shell-доступ к репозиторию, сначала запусти статический helper и сохрани отчёт:
+
+```bash
+python3 scripts/bitrix_static_optimization_audit.py /path/to/project --output /tmp/bitrix-optimization-audit.md
+# или из этого repo:
+make optimization-audit PROJECT_ROOT=/path/to/project OPTIMIZATION_AUDIT_OUTPUT=/tmp/bitrix-optimization-audit.md
+```
+
+Для ручного отчёта используй шаблон [../assets/optimization-audit-report.template.md](../assets/optimization-audit-report.template.md). Helper — read-only и не заменяет runtime/perfmon: его findings нужно подтверждать на стенде.
+
 Минимальный порядок:
 
 1. Прочитать `AGENTS.md` и `BITRIX_PROJECT_CONTEXT.md`, если есть.
@@ -57,7 +67,7 @@ Baseline для этого слоя сверен по локальному core 
 
 ## 3. Быстрый grep-профиль оптимизаций
 
-Запускать из корня проекта, адаптируя `www/`/public root:
+Если `scripts/bitrix_static_optimization_audit.py` недоступен, запускать из корня проекта вручную, адаптируя `www/`/public root:
 
 ```bash
 # Components and cache params

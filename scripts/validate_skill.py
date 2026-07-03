@@ -102,6 +102,9 @@ REQUIRED_REPO_FILES = [
     ".github/workflows/validate.yml",
     "Makefile",
     "scripts/bitrix_runtime_preflight.py",
+    "scripts/bitrix_static_optimization_audit.py",
+    "bitrix/assets/optimization-audit-report.template.md",
+    "mcpmarket/bitrix/assets/optimization-audit-report.template.md",
     "examples/runtime-smoke/blocked-p1/summary.md",
 ]
 

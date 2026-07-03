@@ -2,8 +2,10 @@ PYTHON ?= python3
 EVIDENCE_DIR ?= evidence
 PUBLIC_ROOT ?= www
 BASE_URL ?=
+PROJECT_ROOT ?= .
+OPTIMIZATION_AUDIT_OUTPUT ?=
 
-.PHONY: validate release-check evidence-p1 evidence-all preflight
+.PHONY: validate release-check evidence-p1 evidence-all preflight optimization-audit
 
 validate:
 	$(PYTHON) -m py_compile scripts/*.py
@@ -23,3 +25,6 @@ evidence-all:
 
 preflight:
 	$(PYTHON) scripts/bitrix_runtime_preflight.py --public-root "$(PUBLIC_ROOT)" --base-url "$(BASE_URL)"
+
+optimization-audit:
+	$(PYTHON) scripts/bitrix_static_optimization_audit.py "$(PROJECT_ROOT)" $(if $(OPTIMIZATION_AUDIT_OUTPUT),--output "$(OPTIMIZATION_AUDIT_OUTPUT)",)
