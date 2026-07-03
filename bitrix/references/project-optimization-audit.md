@@ -50,6 +50,18 @@ make optimization-audit PROJECT_ROOT=/path/to/project OPTIMIZATION_AUDIT_OUTPUT=
 
 Для ручного отчёта используй шаблон [../assets/optimization-audit-report.template.md](../assets/optimization-audit-report.template.md). Helper — read-only и не заменяет runtime/perfmon: его findings нужно подтверждать на стенде.
 
+Если нужно вести доказательную базу по findings, создай optimization evidence pack:
+
+```bash
+python3 scripts/init_optimization_evidence.py --output evidence/YYYY-MM-DD-optimization-audit --finding-count 5
+python3 scripts/validate_optimization_evidence.py evidence/YYYY-MM-DD-optimization-audit
+# или:
+make optimization-evidence OPTIMIZATION_EVIDENCE_DIR=evidence/YYYY-MM-DD-optimization-audit
+make validate-optimization-evidence OPTIMIZATION_EVIDENCE_DIR=evidence/YYYY-MM-DD-optimization-audit
+```
+
+Evidence pack должен содержать `summary.md`, `00-runtime-metrics.md`, `OPT-001-finding.md` и далее по findings. Verdict `candidate` означает “есть static evidence, нужен runtime/perfmon”; `confirmed` — подтверждено метриками; `blocked` — нет безопасного стенда/данных; `fixed` — исправлено и проверено; `accepted-risk` — осознанно оставлено с причиной.
+
 Минимальный порядок:
 
 1. Прочитать `AGENTS.md` и `BITRIX_PROJECT_CONTEXT.md`, если есть.

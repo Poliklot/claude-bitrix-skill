@@ -15,6 +15,7 @@
 - `bitrix/VERSION` не имеет секции в `CHANGELOG.md`, `PLAN.md` не упоминает текущую версию или `[Unreleased]` сравнивается не от последнего тега;
 - runtime smoke templates, `scripts/init_runtime_evidence.py` или `scripts/validate_runtime_evidence.py` отсутствуют после изменений runtime smoke слоя;
 - `scripts/bitrix_runtime_preflight.py`, `Makefile`, `.github/workflows/validate.yml` или sample blocked evidence отсутствуют после изменений release/evidence workflow;
+- optimization evidence templates, `scripts/init_optimization_evidence.py`, `scripts/validate_optimization_evidence.py` или sample candidate pack отсутствуют после изменений optimization audit слоя;
 - бытовой regression даёт `fail > 0`;
 - в ответах eval есть первый шаг из [first-answer-pitfalls.md](first-answer-pitfalls.md);
 - compact-версия не содержит новый critical reference или ссылку на него из `mcpmarket/bitrix/SKILL.md`;
@@ -32,6 +33,8 @@ python3 scripts/bitrix_runtime_preflight.py --public-root www --base-url http://
 python3 scripts/init_runtime_evidence.py --package P1 --output /tmp/bitrix-p1-evidence-check
 python3 scripts/init_runtime_evidence.py --all --output /tmp/bitrix-all-evidence-check
 python3 scripts/validate_runtime_evidence.py examples/runtime-smoke/blocked-p1 --package P1
+python3 scripts/init_optimization_evidence.py --output /tmp/bitrix-optimization-evidence-check --finding-count 2
+python3 scripts/validate_optimization_evidence.py examples/optimization-evidence/sample-candidate
 python3 scripts/validate_runtime_evidence.py path/to/evidence/YYYY-MM-DD-p1-shop-path --package P1  # если есть runtime evidence pack
 python3 /Users/igormajorov/.codex/skills/.system/skill-creator/scripts/quick_validate.py bitrix
 python3 /Users/igormajorov/.codex/skills/.system/skill-creator/scripts/quick_validate.py mcpmarket/bitrix
@@ -46,14 +49,37 @@ git status -sb
 - `make validate` → проходит repo-local validation, sample blocked evidence и shell syntax check;
 - `python3 scripts/init_runtime_evidence.py ...` → создаёт `summary.md`, `00-preflight.md` и scenario files;
 - `python3 scripts/init_runtime_evidence.py --all ...` → создаёт подкаталоги `p1-shop-path`, `p2-commerceml`, `p3-rest-webservice`, `p4-marketing-automation`;
+- `python3 scripts/init_optimization_evidence.py ...` → создаёт `summary.md`, `00-runtime-metrics.md` и `OPT-001-finding.md`;
 - `python3 scripts/bitrix_runtime_preflight.py ...` → печатает Markdown-фрагмент preflight без secrets;
 - `python3 scripts/validate_runtime_evidence.py ...` → `Runtime evidence validation passed.`, если в релиз входит runtime evidence pack;
+- `python3 scripts/validate_optimization_evidence.py ...` → `Optimization evidence validation passed.`, если в релиз входит optimization audit evidence pack;
 - оба `quick_validate.py` → `Skill is valid!`;
 - `git diff --check` без вывода;
 - `find ... | wc -l` ≤ `50`;
 - `git status -sb` показывает только ожидаемые файлы.
 
 Если `quick_validate.py` недоступен из-за локального окружения, например `ModuleNotFoundError: No module named 'yaml'`, не чинить это правкой skill-а. Зафиксировать причину как environment issue и использовать `scripts/validate_skill.py` как обязательный fallback: он проверяет frontmatter, `agents/openai.yaml`, MCP Market file-count, внутренние markdown-ссылки, синхронизацию critical references, runtime smoke templates/validator, eval prompt coverage, forbidden markers и `git diff --check` без сторонних Python-пакетов.
+
+## Optimization evidence gate
+
+Если изменения включают audit findings по оптимизациям или утверждение “исправлено/подтверждено”, дополнительно проверить optimization evidence pack:
+
+```bash
+python3 scripts/init_optimization_evidence.py --output evidence/YYYY-MM-DD-optimization-audit --finding-count 5
+python3 scripts/bitrix_static_optimization_audit.py /path/to/project --output evidence/YYYY-MM-DD-optimization-audit/static-audit.md
+python3 scripts/validate_optimization_evidence.py evidence/YYYY-MM-DD-optimization-audit
+python3 scripts/validate_optimization_evidence.py examples/optimization-evidence/sample-candidate
+```
+
+Валидатор должен подтвердить:
+
+- есть `summary.md`;
+- есть rows `OPT-001` и далее с verdict `candidate/confirmed/blocked/fixed/accepted-risk`;
+- есть отдельные finding files;
+- есть разделы `Static audit`, `Runtime/perfmon`, `Safe wins`, `Blocked/runtime-needed`;
+- явные secrets/tokens/cookies не найдены.
+
+`candidate` или `blocked` — допустимый finding, но не runtime/perfmon pass. В changelog/reference писать “candidate requires perfmon evidence” или “blocked by sandbox”, а не “ускорено”.
 
 ## Runtime evidence gate
 

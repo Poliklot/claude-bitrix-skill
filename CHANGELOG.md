@@ -8,10 +8,12 @@
 - `scripts/bitrix_static_optimization_audit.py` — read-only статический helper для Markdown/JSON-аудита оптимизаций Bitrix-проекта.
 - `bitrix/assets/optimization-audit-report.template.md` и MCP Market copy — шаблон итогового отчёта по оптимизациям.
 - `db-orm-performance.md`, `frontend-assets-performance.md`, `agents-imports-performance.md`, `shop-performance.md` — углублённая база по DB/ORM/N+1, images/assets, agents/imports/cron/stepper и catalog/sale/shop bottlenecks.
+- `scripts/init_optimization_evidence.py`, `scripts/validate_optimization_evidence.py`, шаблоны `bitrix/assets/optimization-evidence/*` и `examples/optimization-evidence/sample-candidate/` — воспроизводимый evidence pack для findings аудита оптимизаций.
 
 ### Changed
 - `project-optimization-audit.md`, README и Makefile подключены к `make optimization-audit`; `validate_skill.py` теперь проверяет наличие optimization-audit helper/template.
 - Full и MCP Market compact-навигация связаны с новыми optimization references, включая compact-блоки в `search-seo-ops.md` и `commerce-shop.md`.
+- Makefile, release gate и `validate_skill.py` теперь проверяют optimization evidence templates, initializer, validator и sample candidate pack.
 
 ## [1.32.0] — 2026-07-02
 

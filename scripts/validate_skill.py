@@ -54,6 +54,12 @@ RUNTIME_SMOKE_TEMPLATES = [
     "runtime-smoke/sandbox-preflight.template.md",
 ]
 
+OPTIMIZATION_EVIDENCE_TEMPLATES = [
+    "optimization-evidence/summary.template.md",
+    "optimization-evidence/finding.template.md",
+    "optimization-evidence/runtime-metrics.template.md",
+]
+
 RECOMMENDED_EVAL_IDS = [
     "B001",
     "B004",
@@ -103,9 +109,14 @@ REQUIRED_REPO_FILES = [
     "Makefile",
     "scripts/bitrix_runtime_preflight.py",
     "scripts/bitrix_static_optimization_audit.py",
+    "scripts/init_optimization_evidence.py",
+    "scripts/validate_optimization_evidence.py",
     "bitrix/assets/optimization-audit-report.template.md",
     "mcpmarket/bitrix/assets/optimization-audit-report.template.md",
+    "bitrix/assets/optimization-evidence/summary.template.md",
+    "mcpmarket/bitrix/assets/optimization-evidence/summary.template.md",
     "examples/runtime-smoke/blocked-p1/summary.md",
+    "examples/optimization-evidence/sample-candidate/summary.md",
 ]
 
 
@@ -326,6 +337,29 @@ def validate_runtime_smoke_templates() -> None:
     add("runtime smoke templates synced", not missing, "; ".join(missing[:10]) if missing else "ok")
 
 
+def validate_optimization_evidence_templates() -> None:
+    missing: list[str] = []
+    for rel_path in OPTIMIZATION_EVIDENCE_TEMPLATES:
+        full_path = FULL_SKILL / "assets" / rel_path
+        compact_path = MCP_SKILL / "assets" / rel_path
+        if not full_path.exists():
+            missing.append(f"full missing {rel_path}")
+        if not compact_path.exists():
+            missing.append(f"mcp missing {rel_path}")
+        if full_path.exists() and compact_path.exists() and read_text(full_path) != read_text(compact_path):
+            missing.append(f"template drift {rel_path}")
+
+    audit_text = read_text(FULL_SKILL / "references" / "project-optimization-audit.md")
+    compact_text = read_text(MCP_SKILL / "references" / "search-seo-ops.md")
+    for marker in ["optimization evidence", "validate_optimization_evidence.py", "OPT-001"]:
+        if marker not in audit_text:
+            missing.append(f"project-optimization-audit missing marker {marker}")
+        if marker not in compact_text:
+            missing.append(f"compact search-seo-ops missing marker {marker}")
+
+    add("optimization evidence templates synced", not missing, "; ".join(missing[:10]) if missing else "ok")
+
+
 def validate_runtime_evidence_validator() -> None:
     script = ROOT / "scripts" / "validate_runtime_evidence.py"
     if not script.exists():
@@ -440,6 +474,118 @@ def validate_runtime_evidence_initializer() -> None:
     )
 
 
+def validate_optimization_evidence_validator() -> None:
+    script = ROOT / "scripts" / "validate_optimization_evidence.py"
+    if not script.exists():
+        add("optimization evidence validator", False, "missing scripts/validate_optimization_evidence.py")
+        return
+
+    with tempfile.TemporaryDirectory() as tmp:
+        evidence_dir = Path(tmp)
+        (evidence_dir / "summary.md").write_text(
+            "\n".join(
+                [
+                    "# Optimization evidence summary",
+                    "",
+                    "## Scope",
+                    "",
+                    "## Static audit",
+                    "",
+                    "## Findings",
+                    "",
+                    "| ID | Priority | Layer | Verdict | Evidence file | Notes |",
+                    "|---|---|---|---|---|---|",
+                    "| OPT-001 | P1 | db-orm | candidate | OPT-001-finding.md | test |",
+                    "",
+                    "## Runtime/perfmon",
+                    "",
+                    "## Safe wins",
+                    "",
+                    "## Blocked/runtime-needed",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (evidence_dir / "OPT-001-finding.md").write_text(
+            "\n".join(
+                [
+                    "# Optimization finding — OPT-001",
+                    "",
+                    "## Evidence",
+                    "test",
+                    "",
+                    "## Impact",
+                    "test",
+                    "",
+                    "## Fix plan",
+                    "test",
+                    "",
+                    "## Verification",
+                    "test",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        result = subprocess.run(
+            [sys.executable, str(script), str(evidence_dir)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+
+    add(
+        "optimization evidence validator",
+        result.returncode == 0,
+        "ok" if result.returncode == 0 else result.stdout.strip().splitlines()[-1],
+    )
+
+
+def validate_optimization_evidence_initializer() -> None:
+    script = ROOT / "scripts" / "init_optimization_evidence.py"
+    if not script.exists():
+        add("optimization evidence initializer", False, "missing scripts/init_optimization_evidence.py")
+        return
+
+    with tempfile.TemporaryDirectory() as tmp:
+        output = Path(tmp) / "optimization"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--date",
+                "2026-07-03",
+                "--finding-count",
+                "2",
+                "--output",
+                str(output),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        expected_files = [
+            "summary.md",
+            "00-runtime-metrics.md",
+            "OPT-001-finding.md",
+            "OPT-002-finding.md",
+            "README.md",
+            "static-audit.md",
+        ]
+        missing = [name for name in expected_files if not (output / name).exists()]
+
+    add(
+        "optimization evidence initializer",
+        result.returncode == 0 and not missing,
+        "missing: " + ", ".join(missing) if missing else ("ok" if result.returncode == 0 else result.stdout.strip()),
+    )
+
+
 def validate_runtime_preflight_helper() -> None:
     script = ROOT / "scripts" / "bitrix_runtime_preflight.py"
     if not script.exists():
@@ -550,8 +696,11 @@ def main() -> int:
     validate_eval_prompts()
     validate_developer_card_coverage()
     validate_runtime_smoke_templates()
+    validate_optimization_evidence_templates()
     validate_runtime_evidence_validator()
     validate_runtime_evidence_initializer()
+    validate_optimization_evidence_validator()
+    validate_optimization_evidence_initializer()
     validate_runtime_preflight_helper()
     validate_forbidden_markers()
     validate_git_diff_check()

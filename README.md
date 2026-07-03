@@ -190,6 +190,8 @@ make evidence-all
 make preflight PUBLIC_ROOT=www BASE_URL=http://localhost
 make release-check
 make optimization-audit PROJECT_ROOT=/path/to/bitrix-project OPTIMIZATION_AUDIT_OUTPUT=/tmp/bitrix-optimization-audit.md
+make optimization-evidence OPTIMIZATION_EVIDENCE_DIR=evidence/YYYY-MM-DD-optimization-audit
+make validate-optimization-evidence OPTIMIZATION_EVIDENCE_DIR=evidence/YYYY-MM-DD-optimization-audit
 ```
 
 Пример честного `blocked` без runtime pass лежит в [`examples/runtime-smoke/blocked-p1/`](examples/runtime-smoke/blocked-p1/).

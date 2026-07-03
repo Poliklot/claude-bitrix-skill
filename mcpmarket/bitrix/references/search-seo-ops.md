@@ -1562,6 +1562,15 @@ rg -n 'foreach\s*\(|while\s*\(|Option::get|Loader::includeModule|GetUserGroupArr
   --glob 'template.php' --glob 'result_modifier.php' --glob 'component_epilog.php'
 ```
 
+Для доказательной базы создай optimization evidence pack:
+
+```bash
+python3 scripts/init_optimization_evidence.py --output evidence/YYYY-MM-DD-optimization-audit --finding-count 5
+python3 scripts/validate_optimization_evidence.py evidence/YYYY-MM-DD-optimization-audit
+```
+
+Минимальная структура: `summary.md`, `00-runtime-metrics.md`, `OPT-001-finding.md`; verdicts: `candidate`, `confirmed`, `blocked`, `fixed`, `accepted-risk`.
+
 ## Карта оптимизаций
 
 | Слой | Evidence | Риск ошибки |

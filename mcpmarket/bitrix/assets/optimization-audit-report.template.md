@@ -10,6 +10,7 @@
 - Runtime scope: not checked / read-only / staging / sandbox
 - Static audit command:
 - Runtime/perfmon evidence directory:
+- Optimization evidence pack: `evidence/YYYY-MM-DD-optimization-audit` (см. `scripts/init_optimization_evidence.py`)
 
 ## Краткий вывод
 
@@ -33,6 +34,8 @@
 | Priority | Место | Проблема | Почему важно | Что сделать | Проверка |
 |---|---|---|---|---|---|
 | P0/P1/P2/P3 | | | | | |
+
+Если finding переносится в evidence pack, используй ID `OPT-001`, `OPT-002`, ... и verdict `candidate/confirmed/blocked/fixed/accepted-risk`.
 
 ## Быстрые safe wins
 
