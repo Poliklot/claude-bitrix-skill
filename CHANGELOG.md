@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.34.0] — 2026-07-08
+
+### Added
+- `admin-ui.md` получил расширенный update-safe слой по кастомизации админки: core → docs/forums → core методика, матрица выбора между `CAdmin*`, `OnAdmin*`, `OnBuildGlobalMenu`, custom admin pages и modern grid.
+- Eval prompts `B065–B069` покрывают безопасную кастомизацию админки, вкладки форм, групповые действия списков, admin-меню и размещение module admin pages.
+
+### Changed
+- Full и MCP Market compact `components-admin-ui.md` синхронизированы с новым admin UI playbook: `/local/modules`, tiny wrappers в `/bitrix/admin`, persistent event handlers, стабильные `table_id`/`grid_id`/tab ids, права, `sessid`, smoke-чеклист и anti-patterns правки ядра.
+- README, PLAN, release gate и `validate_skill.py` обновлены под версию `1.34.0` и расширенный admin/backoffice regression set.
+
 ## [1.33.0] — 2026-07-03
 
 ### Added
@@ -433,7 +443,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.33.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.34.0...HEAD
+[1.34.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.33.0...v1.34.0
 [1.33.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.32.0...v1.33.0
 [1.32.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.31.0...v1.32.0
 [1.31.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.30.0...v1.31.0

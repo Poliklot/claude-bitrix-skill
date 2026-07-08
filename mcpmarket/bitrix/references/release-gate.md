@@ -88,7 +88,8 @@ Run at least 15 prompts from `eval-prompts.md` across different domains. Recomme
 ```text
 B001, B004, B007, B009, B011, B013, B016, B018,
 B021, B023, B025, B028, B030, B031, B043, B046,
-B048, B052, B053, B057, B060, B061, B062, B063, B064
+B048, B052, B053, B057, B060, B061, B062, B063, B064,
+B065, B066, B067, B068, B069
 ```
 
 Threshold:

@@ -64,5 +64,10 @@
 | B062 | Каталог/filter тормозит после импорта | `commerce-shop` shop-performance + `search-seo-ops` agents/perfmon | full production rebuild first |
 | B063 | Agents/imports грузят сайт | `search-seo-ops` agents-imports + operations/stepper | `set_time_limit(0)` as fix |
 | B064 | Тяжёлые images/JS | `search-seo-ops` frontend-assets + components-admin-ui | CDN first |
+| B065 | Update-safe кастомизация админки | components-admin-ui + php-architecture/events | edit core/admin files first |
+| B066 | Вкладка в форме админки | components-admin-ui + events + content-data if iblock | CSS/admin_header first |
+| B067 | Групповое действие/кнопка списка | components-admin-ui + users-security | no sessid/rights |
+| B068 | Раздел в меню админки | components-admin-ui + php-architecture/modules | edit `.left.menu.php`/core menu |
+| B069 | Где хранить admin-страницы | components-admin-ui + php-architecture/modules | business logic in `/bitrix/admin` |
 
 Gate: перед релизом бытового слоя выбрать минимум 15 prompt из разных доменов; `fail = 0`. Полный checklist — `release-gate.md`.

@@ -665,6 +665,10 @@ $frame = $this->createFrame('header-cart-counter')->begin('');
 - Admin-меню модуля (menu.php)
 - Права доступа модуля
 - Кастомные типы пользовательских полей (OnUserTypeBuildList)
+- Update-safe стратегия кастомизации админки
+- События админки: `OnAdmin*`, `OnBuildGlobalMenu`
+- Сохранение состояния между обновлениями
+- Чеклист перед обновлением и релизом
 - Gotchas
 
 ---
@@ -1474,6 +1478,544 @@ public function UnInstallFiles(): bool
 
 ---
 
+
+## Update-safe стратегия кастомизации админки
+
+Главное правило: **не править ядро и существующие страницы ядра ради кастомизации админки**. В Bitrix административный UI исторически расширяется через собственные admin-страницы, `CAdmin*`-классы, модульное меню и события главного модуля. Форумные сниппеты полезны как навигация по старым сценариям, но финальное решение нужно сверять с локальным core: какой класс вызывает событие, какие параметры реально передаются, где хранится состояние и как страница подключает prolog/epilog.
+
+### Приоритет источников: core → docs/forums → core
+
+1. **Сначала core проекта.** Открой реальные файлы установленного проекта: `www/bitrix/modules/main/interface/*`, `www/bitrix/modules/main/include/prolog_admin_*.php`, целевую admin-страницу модуля (`www/bitrix/modules/<module>/admin/*.php`) и её wrapper в `/bitrix/admin/*.php`.
+2. **Потом официальные docs и форумы.** Docs дают имена событий и базовые сигнатуры; форумы часто показывают рабочие edge cases (`OnAdminTabControlBegin`, `admin_header.php`, кастомные формы инфоблоков), но в них много устаревших или слишком жёстких решений.
+3. **Затем снова core.** Перед внедрением проверь в текущем ядре точное место вызова события, имена `$table_id`, `DIV`, `form name`, `REQUEST`-параметров, права и `sessid`.
+
+Полезные core-grep команды из корня Bitrix-проекта:
+
+```bash
+# Где ядро вызывает ключевые события админки
+rg "OnAdminListDisplay|OnAdminTabControlBegin|OnAdminContextMenuShow|OnBuildGlobalMenu" www/bitrix/modules/main www/bitrix/modules/*/admin
+
+# Как устроены CAdmin* классы текущего main
+sed -n '1,220p' www/bitrix/modules/main/interface/admin_list.php
+sed -n '1,220p' www/bitrix/modules/main/interface/admin_tabcontrol.php
+sed -n '1,220p' www/bitrix/modules/main/interface/admin_form.php
+sed -n '1,220p' www/bitrix/modules/main/interface/admin_lib.php
+
+# Какие admin-страницы реально есть и какие wrapper-файлы торчат в /bitrix/admin
+find www/bitrix/modules -maxdepth 5 -path '*/admin/*.php' -type f | sort | head -200
+find www/bitrix/admin -maxdepth 1 -type f | sort | head -200
+
+# Где проект уже расширяет админку
+rg "OnAdmin|OnBuildGlobalMenu|CAdminList|CAdminTabControl|CAdminForm|admin_header|admin_footer" local bitrix/php_interface -g '*.php'
+```
+
+### Карта решений: какой способ выбрать
+
+| Задача | Правильный первый путь | Когда подходит | Риски |
+|---|---|---|---|
+| Сделать свой backoffice-раздел | свой модуль в `local/modules/vendor.module`, wrapper в `/bitrix/admin/vendor_module_*.php`, логика в `local/modules/vendor.module/admin/` | новая сущность, интеграция, отчёт, импорт, служебная таблица | не коллизить с именами core; не класть бизнес-логику в wrapper |
+| Добавить пункт меню | `admin/menu.php` своего модуля; для cross-cutting — `OnBuildGlobalMenu` | собственный раздел или изменение уже собранного меню | права и `more_url`; динамическое меню не должно делать тяжёлые запросы |
+| Добавить кнопку в контекстной панели | `OnAdminContextMenuShow` или `$lAdmin->AddAdminContextMenu()` на своей странице | кнопка сверху страницы | событие получает только массив кнопок, не объект формы/списка |
+| Добавить массовое действие в список | `OnAdminListDisplay` + отдельная обработка POST до вывода | legacy `CAdminList` страницы | UI-часть и обработка action должны быть разделены; нужен `check_bitrix_sessid()` |
+| Добавить вкладку/поля в форму | `OnAdminTabControlBegin` или штатные настройки формы конкретного модуля | legacy `CAdminTabControl` формы | `CONTENT` должен быть совместим с HTML таблицы формы; не ломать стандартные поля |
+| Настроить видимость полей элемента инфоблока для редакторов | сначала штатная “шестерёнка” формы / настройки инфоблока; код — только если штатного слоя мало | UX формы, порядок полей, предустановки | per-user/per-iblock state; нельзя сбрасывать настройки всем без миграции |
+| Полностью заменить форму инфоблока | “Файл с формой редактирования элемента” только как крайний вариант | нужен радикально другой UX | высокая цена сопровождения: приходится повторять куски core формы |
+| Добавить свой UF-тип | `OnUserTypeBuildList` + класс типа в модуле | повторяемое поле для HL/USER/IBLOCK_ELEMENT | обработчик должен быть лёгким; не делать запросы в БД при регистрации типа |
+| Modern `main.ui.grid` | route из `grid-admin-modern.md` после проверки `Bitrix\Main\Grid\Grid`, `Settings`, `Options`, `ComponentParams` в текущем core | новые D7/grid страницы | API чувствителен к версии; не переносить примеры из другого core без проверки |
+
+Не подменяй legacy и modern слои по памяти: если страница построена на `CAdminList`, расширяй её как `CAdminList`; если на `bitrix:main.ui.grid`, сначала сверяй `Bitrix\Main\Grid` API текущего ядра.
+
+### Что безопасно переживает обновления
+
+1. **Код в `/local`**: `local/modules/vendor.module`, `local/php_interface/init.php`, `local/components`, `local/templates`. Это основной слой проектной кастомизации.
+2. **Минимальные wrapper-файлы в `/bitrix/admin` с уникальными именами**: например `vendor_module_items.php`, которые только подключают файл из `/local/modules/vendor.module/admin/`. Они не являются правкой существующего core-файла и обычно не затрагиваются обновлениями, если имя не конфликтует с ядром.
+3. **Persistent event registration** в `b_module_to_module` через `registerEventHandlerCompatible()` в инсталляторе модуля. Это переживает перезапуск и не зависит от того, подключился ли `init.php` раньше целевой страницы.
+4. **Настройки модуля и миграции**: `Option`, собственные таблицы, HL/UF через install/migration слой. Все изменения должны быть идемпотентными.
+5. **Пользовательские настройки UI**: сохранённые колонки, сортировки, фильтры, active tab, настройки форм. Они привязаны к стабильным ID (`table_id`, `grid_id`, `tabControl id`, `form id`, `filter id`).
+
+Что ломается при обновлениях или переносах:
+
+- правка файлов `www/bitrix/modules/*` и существующих `/bitrix/admin/*.php`;
+- копирование больших кусков core admin-страницы в проект без слоя сравнения с новой версией;
+- CSS/JS “спрятать вкладку/кнопку” через глобальный `admin_header.php` вместо server-side события;
+- изменение `table_id`/`grid_id` после релиза без миграции состояния;
+- обработчики, которые исполняются на каждой admin-странице и не проверяют `GetCurPage()`/модуль/права;
+- прямой SQL в таблицы UI-настроек и core-сущностей без подтверждения контракта текущего ядра.
+
+### Базовая структура update-safe admin-модуля
+
+```text
+local/modules/vendor.mymodule/
+├── include.php
+├── install/
+│   ├── index.php
+│   ├── version.php
+│   └── admin/
+│       ├── vendor_mymodule_items.php      ← tiny wrapper, копируется в /bitrix/admin
+│       └── vendor_mymodule_item_edit.php  ← tiny wrapper, копируется в /bitrix/admin
+├── admin/
+│   ├── menu.php                           ← меню модуля
+│   ├── items.php                          ← реальная страница списка
+│   └── item_edit.php                      ← реальная форма
+└── lib/
+    ├── Admin/EventHandler.php
+    ├── Access/Permission.php
+    └── Entity/ItemTable.php
+```
+
+Wrapper должен быть максимально тупым:
+
+```php
+<?php
+// /bitrix/admin/vendor_mymodule_items.php
+require $_SERVER['DOCUMENT_ROOT'] . '/local/modules/vendor.mymodule/admin/items.php';
+```
+
+Реальная страница живёт в `/local/modules/.../admin/items.php`, где уже подключаются admin prolog/epilog, модуль, права и UI. Так обновление ядра не перезаписывает вашу логику, а code review видит весь backoffice-код в модуле.
+
+---
+
+## События админки: `OnAdmin*`, `OnBuildGlobalMenu`
+
+Официальный список событий main подтверждает, что административный слой расширяется событиями:
+
+- `OnAdminContextMenuShow` — вызывается при `CAdminContextMenu::Show()`, параметр `array &$items`.
+- `OnAdminListDisplay` — вызывается при `CAdminList::Display()`, параметр `object &$list`.
+- `OnAdminTabControlBegin` — вызывается при `CAdminTabControl::Begin()`, параметр `&$form`.
+- `OnBuildGlobalMenu` — вызывается при построении меню административной части, параметры `&$aGlobalMenu`, `&$aModuleMenu`.
+
+Для этих событий используй **legacy-compatible регистрацию**, потому что обработчики получают параметры по-отдельности и часто по ссылке.
+
+### Runtime vs persistent регистрация
+
+| Способ | Где писать | Когда использовать |
+|---|---|---|
+| `EventManager::getInstance()->addEventHandlerCompatible(...)` | `local/php_interface/init.php` или `include.php` модуля | быстрый проектный glue-code, который должен работать сразу |
+| `EventManager::getInstance()->registerEventHandlerCompatible(...)` | `InstallDB()` модуля | продуктовый модуль, переносимый между окружениями |
+| `EventManager::getInstance()->unRegisterEventHandler(...)` / compatible-вариант по доступности core | `UnInstallDB()` | чистое удаление persistent handler |
+
+Минимальный persistent-паттерн:
+
+```php
+// local/modules/vendor.mymodule/install/index.php
+use Bitrix\Main\EventManager;
+use Bitrix\Main\ModuleManager;
+
+class vendor_mymodule extends CModule
+{
+    public $MODULE_ID = 'vendor.mymodule';
+
+    public function InstallDB(): bool
+    {
+        ModuleManager::registerModule($this->MODULE_ID);
+
+        $em = EventManager::getInstance();
+        $em->registerEventHandlerCompatible(
+            'main',
+            'OnAdminListDisplay',
+            $this->MODULE_ID,
+            \Vendor\MyModule\Admin\EventHandler::class,
+            'onAdminListDisplay'
+        );
+        $em->registerEventHandlerCompatible(
+            'main',
+            'OnAdminTabControlBegin',
+            $this->MODULE_ID,
+            \Vendor\MyModule\Admin\EventHandler::class,
+            'onAdminTabControlBegin'
+        );
+        $em->registerEventHandlerCompatible(
+            'main',
+            'OnAdminContextMenuShow',
+            $this->MODULE_ID,
+            \Vendor\MyModule\Admin\EventHandler::class,
+            'onAdminContextMenuShow'
+        );
+        $em->registerEventHandlerCompatible(
+            'main',
+            'OnBuildGlobalMenu',
+            $this->MODULE_ID,
+            \Vendor\MyModule\Admin\EventHandler::class,
+            'onBuildGlobalMenu'
+        );
+
+        return true;
+    }
+
+    public function UnInstallDB(): bool
+    {
+        $em = EventManager::getInstance();
+        $handlers = [
+            'OnAdminListDisplay' => 'onAdminListDisplay',
+            'OnAdminTabControlBegin' => 'onAdminTabControlBegin',
+            'OnAdminContextMenuShow' => 'onAdminContextMenuShow',
+            'OnBuildGlobalMenu' => 'onBuildGlobalMenu',
+        ];
+        foreach ($handlers as $eventName => $method) {
+            $em->unRegisterEventHandler(
+                'main',
+                $eventName,
+                $this->MODULE_ID,
+                \Vendor\MyModule\Admin\EventHandler::class,
+                $method
+            );
+        }
+
+        ModuleManager::unRegisterModule($this->MODULE_ID);
+        return true;
+    }
+}
+```
+
+> В `UnInstallDB()` не копируй этот пример вслепую: в старых core имя метода снятия compatible-регистрации и точная сигнатура могут отличаться. Перед релизом проверь `www/bitrix/modules/main/lib/eventmanager.php`. Главное требование — инсталлятор должен быть идемпотентным: повторная установка не должна плодить дубли обработчиков.
+
+Лучше держать обработчики в классе:
+
+```php
+// local/modules/vendor.mymodule/lib/Admin/EventHandler.php
+namespace Vendor\MyModule\Admin;
+
+use Bitrix\Main\Application;
+use Bitrix\Main\Context;
+use Bitrix\Main\Loader;
+
+final class EventHandler
+{
+    private const MODULE_ID = 'vendor.mymodule';
+
+    private static function isAdminPage(string $page): bool
+    {
+        global $APPLICATION;
+        return $APPLICATION->GetCurPage() === $page || $APPLICATION->GetCurPage(true) === $page;
+    }
+
+    private static function canWrite(): bool
+    {
+        global $APPLICATION;
+        return $APPLICATION->GetGroupRight(self::MODULE_ID) >= 'W';
+    }
+}
+```
+
+### `OnAdminListDisplay`: добавить массовое действие и действие строки
+
+Событие изменяет объект `CAdminList` **в момент вывода**. Поэтому:
+
+- в самом `OnAdminListDisplay` можно добавить action в `$list->arActions` или пройти по rows, если они уже доступны в текущем core;
+- реальную обработку POST лучше делать раньше (`OnBeforeProlog`, собственная admin-страница или контроллер), до HTML-вывода;
+- обязательно проверять страницу, `table_id`, права, `check_bitrix_sessid()` и ID.
+
+```php
+namespace Vendor\MyModule\Admin;
+
+use Bitrix\Main\EventManager;
+use Bitrix\Main\Loader;
+use Vendor\MyModule\Entity\ItemTable;
+
+final class EventHandler
+{
+    private const MODULE_ID = 'vendor.mymodule';
+    private const LIST_PAGE = '/bitrix/admin/vendor_mymodule_items.php';
+    private const TABLE_ID = 'tbl_vendor_mymodule_items';
+
+    public static function onAdminListDisplay(\CAdminList &$list): void
+    {
+        global $APPLICATION;
+
+        if ($APPLICATION->GetCurPage() !== self::LIST_PAGE || $list->table_id !== self::TABLE_ID) {
+            return;
+        }
+        if ($APPLICATION->GetGroupRight(self::MODULE_ID) < 'W') {
+            return;
+        }
+
+        // UI: добавить пункт в выпадающий список массовых действий.
+        $list->arActions['vendor_archive'] = 'Архивировать';
+    }
+
+    public static function onBeforePrologProcessAdminAction(): void
+    {
+        global $APPLICATION;
+
+        if ($APPLICATION->GetCurPage() !== self::LIST_PAGE) {
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
+        if (($_POST['action'] ?? '') !== 'vendor_archive') {
+            return;
+        }
+        if ($APPLICATION->GetGroupRight(self::MODULE_ID) < 'W' || !check_bitrix_sessid()) {
+            return;
+        }
+        if (!Loader::includeModule(self::MODULE_ID)) {
+            return;
+        }
+
+        $ids = array_map('intval', (array)($_POST['ID'] ?? []));
+        $ids = array_filter($ids);
+
+        foreach ($ids as $id) {
+            ItemTable::update($id, ['ARCHIVED' => 'Y']);
+        }
+    }
+}
+
+// runtime-регистрация, если это project glue-code:
+EventManager::getInstance()->addEventHandlerCompatible(
+    'main',
+    'OnAdminListDisplay',
+    [EventHandler::class, 'onAdminListDisplay']
+);
+EventManager::getInstance()->addEventHandlerCompatible(
+    'main',
+    'OnBeforeProlog',
+    [EventHandler::class, 'onBeforePrologProcessAdminAction']
+);
+```
+
+Если список твой, чаще проще и надёжнее не через событие, а прямо на странице:
+
+```php
+$lAdmin->AddGroupActionTable([
+    'delete' => 'Удалить',
+    'vendor_archive' => 'Архивировать',
+]);
+```
+
+Событие нужно, когда расширяешь **чужую** legacy-страницу или хочешь вынести extension point в отдельный модуль.
+
+### `OnAdminTabControlBegin`: добавить вкладку в существующую форму
+
+Событие вызывается при `CAdminTabControl::Begin()` и даёт ссылку на объект формы. В docs подтверждён доступ к `$form->tabs`. Используй его точечно:
+
+```php
+final class EventHandler
+{
+    private const MODULE_ID = 'vendor.mymodule';
+
+    public static function onAdminTabControlBegin(\CAdminTabControl &$form): void
+    {
+        global $APPLICATION;
+
+        if ($APPLICATION->GetCurPage() !== '/bitrix/admin/iblock_element_edit.php') {
+            return;
+        }
+        if ((int)($_REQUEST['IBLOCK_ID'] ?? 0) !== 12) {
+            return;
+        }
+        if ($APPLICATION->GetGroupRight(self::MODULE_ID) < 'R') {
+            return;
+        }
+
+        $elementId = (int)($_REQUEST['ID'] ?? 0);
+        $safeValue = htmlspecialcharsbx(self::loadAdminComment($elementId));
+
+        $form->tabs[] = [
+            'DIV' => 'vendor_mymodule_extra',
+            'TAB' => 'Дополнительно',
+            'ICON' => 'main_user_edit',
+            'TITLE' => 'Проектные поля',
+            'CONTENT' => '
+                <tr>
+                    <td width="40%">Комментарий модератора:</td>
+                    <td><input type="text" name="VENDOR_ADMIN_COMMENT" value="' . $safeValue . '" size="60"></td>
+                </tr>',
+        ];
+    }
+
+    private static function loadAdminComment(int $elementId): string
+    {
+        // Только быстрый read. Тяжёлые вычисления вынеси заранее или кешируй.
+        return '';
+    }
+}
+```
+
+Сохранение поля делай отдельным обработчиком (`OnBeforeIBlockElementUpdate`, `OnAfterIBlockElementUpdate`, собственная обработка формы или файл “перед сохранением” для инфоблока), а не внутри `OnAdminTabControlBegin`: это событие про UI-render, не про mutation.
+
+Удалять вкладки через `unset($form->tabs[$key])` можно только после проверки:
+
+- точной страницы;
+- `IBLOCK_ID`/модуля/контекста;
+- `DIV` вкладки в текущем core;
+- прав текущего пользователя;
+- отсутствия side effects у модуля, который эту вкладку добавил.
+
+Форумные решения часто предлагают `admin_header.php` + CSS `display:none`. Это годится только как временная диагностика. Production-решение — server-side событие или штатная настройка формы.
+
+### `OnAdminContextMenuShow`: добавить кнопку на панель
+
+Событие получает массив кнопок `&$items`, а не список и не форму:
+
+```php
+final class EventHandler
+{
+    public static function onAdminContextMenuShow(array &$items): void
+    {
+        global $APPLICATION;
+
+        if ($APPLICATION->GetCurPage(true) !== '/bitrix/admin/index.php') {
+            return;
+        }
+        if ($APPLICATION->GetGroupRight('vendor.mymodule') < 'R') {
+            return;
+        }
+
+        $items[] = [
+            'TEXT' => 'Отчёт интеграции',
+            'TITLE' => 'Открыть служебный отчёт интеграции',
+            'LINK' => 'vendor_mymodule_report.php?lang=' . LANGUAGE_ID,
+            'ICON' => 'btn_view',
+        ];
+    }
+}
+```
+
+Для своей страницы обычно достаточно `$lAdmin->AddAdminContextMenu(...)` или `new CAdminContextMenu($aMenu)->Show()`. Событие оставляй для расширения чужих страниц.
+
+### `OnBuildGlobalMenu`: меню и разделы админки
+
+Если у модуля есть `admin/menu.php`, сначала используй его: это штатный и читаемый путь. `OnBuildGlobalMenu` нужен, когда пункт зависит от другого модуля, от проекта, от динамической структуры или когда нужно модифицировать уже собранное меню.
+
+```php
+final class EventHandler
+{
+    public static function onBuildGlobalMenu(array &$aGlobalMenu, array &$aModuleMenu): void
+    {
+        global $APPLICATION;
+
+        if ($APPLICATION->GetGroupRight('vendor.mymodule') === 'D') {
+            return;
+        }
+
+        $aModuleMenu[] = [
+            'parent_menu' => 'global_menu_services',
+            'section' => 'vendor_mymodule',
+            'sort' => 250,
+            'module_id' => 'vendor.mymodule',
+            'text' => 'Проектный backoffice',
+            'title' => 'Проектный backoffice',
+            'url' => 'vendor_mymodule_items.php?lang=' . LANGUAGE_ID,
+            'icon' => 'main_menu_icon',
+            'page_icon' => 'main_page_icon',
+            'items_id' => 'menu_vendor_mymodule',
+            'more_url' => [
+                'vendor_mymodule_items.php',
+                'vendor_mymodule_item_edit.php',
+            ],
+            'items' => [],
+        ];
+    }
+}
+```
+
+Не делай в `OnBuildGlobalMenu` тяжёлую аналитику, внешние HTTP-запросы или длинные SQL: меню строится часто, и плохой обработчик замедлит всю админку.
+
+---
+
+## Сохранение состояния между обновлениями
+
+В админке есть несколько разных “состояний”. Их нельзя смешивать.
+
+| Тип состояния | Где возникает | Что ломает его | Как сохранить |
+|---|---|---|---|
+| Код кастомизации | `/local/modules`, `local/php_interface`, wrapper в `/bitrix/admin` | правка core, конфликт имён, копипаст core-страницы | хранить логику в `/local`, wrapper делать минимальным, имена префиксовать vendor/module |
+| Состояние списка | `CAdminList`, `CAdminSorting`, `CGridOptions`, modern `main.ui.grid` | смена `table_id`/`grid_id`, переименование колонок без алиасов | стабильные ID, добавлять колонки эволюционно, старые ID не переиспользовать под другой смысл |
+| Состояние фильтра | `CAdminFilter`, `main.ui.filter`, GET/session/user options | смена имён `find_*`, `filter_id`, типов полей | не переименовывать без migration path; новые поля добавлять как новые `find_*` |
+| Активная вкладка формы | `CAdminTabControl::ActiveTabParam()` | смена id tab control или `DIV` вкладки | стабильный id `$tabControl = new CAdminTabControl('...', ...)`, стабильные `DIV` |
+| Настройки формы инфоблока | “шестерёнка”, настройки типа/инфоблока, custom form files | массовый reset user options, замена формы | сначала штатная настройка, затем точечная миграция; не перетирать per-user без согласования |
+| Настройки модуля | `Option`, собственные таблицы, HL/UF | неидемпотентный install/update, raw SQL без проверки | versioned migrations/update steps, backup, rollback plan |
+
+### Стабильные идентификаторы
+
+Для своей страницы зафиксируй ID как контракт:
+
+```php
+final class AdminIds
+{
+    public const ITEMS_TABLE = 'tbl_vendor_mymodule_items';
+    public const ITEMS_FILTER = 'tbl_vendor_mymodule_items_filter';
+    public const ITEM_EDIT_TABS = 'vendor_mymodule_item_edit_tabs';
+    public const MODERN_GRID = 'vendor_mymodule_items_grid';
+}
+```
+
+Используй их везде:
+
+```php
+$oSort = new CAdminSorting(AdminIds::ITEMS_TABLE, 'ID', 'desc');
+$lAdmin = new CAdminList(AdminIds::ITEMS_TABLE, $oSort);
+$oFilter = new CAdminFilter(AdminIds::ITEMS_FILTER, ['ID', 'Название']);
+$tabControl = new CAdminTabControl(AdminIds::ITEM_EDIT_TABS, $aTabs);
+```
+
+Нельзя после релиза “красиво переименовать” `tbl_vendor_mymodule_items` в `tbl_vendor_items`: пользователи потеряют сохранённые колонки, сортировки, размеры страниц и фильтры. Если переименование неизбежно, оформи это как миграцию состояния после проверки того, где текущий core хранит user options.
+
+### Колонки и фильтры: эволюция без сброса
+
+- Добавлять новую колонку — безопасно, если `id` новый и не конфликтует.
+- Менять `content`/label — обычно безопасно: ID остаётся прежним.
+- Менять смысл существующего `id` — опасно: сохранённые фильтры/сортировки начнут работать иначе.
+- Удалять колонку — лучше через deprecation: сначала оставить hidden/не default, затем убрать после релиза и smoke.
+- Для фильтров имена `find_*` считать публичным контрактом страницы.
+
+### Обновления ядра и кастомные страницы
+
+Перед обновлением Bitrix или релизом модуля проверь:
+
+```bash
+# Не трогали ли core/admin файлы напрямую
+git diff -- www/bitrix/modules www/bitrix/admin bitrix/modules bitrix/admin
+
+# Нет ли проектных правок в опасных admin_header/admin_footer
+rg "admin_header|admin_footer|display:\s*none|OnAdmin" local bitrix/php_interface -g '*.php' -g '*.css' -g '*.js'
+
+# Стабильны ли идентификаторы списков/форм
+rg "new CAdminList|new CAdminSorting|new CAdminFilter|new CAdminTabControl|GRID_ID|grid_id|table_id" local bitrix/php_interface -g '*.php'
+```
+
+Если в проекте нет git на production, делай read-only snapshot: список изменённых файлов, checksums своих wrappers и `rg` по `OnAdmin*`. Не начинай обновление, пока не понятно, какие файлы в `/bitrix/admin` являются custom wrapper, а какие принадлежат ядру.
+
+---
+
+## Чеклист перед изменением админки
+
+1. **Контекст**: это своя страница, существующая legacy `CAdmin*` страница или modern `main.ui.grid`?
+2. **Модуль**: подтверждён ли модуль через `Loader::includeModule(...)` и наличие `www/bitrix/modules/<module>`?
+3. **Права**: какой уровень нужен — `R`, `W`, `X`; где проверяется `$APPLICATION->GetGroupRight(...)`?
+4. **CSRF**: все POST/GET mutation actions проверяют `check_bitrix_sessid()` или `bitrix_sessid_get()`?
+5. **Состояние UI**: зафиксированы ли `table_id`, `filter_id`, `grid_id`, `tabControl id`, `DIV` вкладок?
+6. **Место кода**: логика в `/local/modules`, а не в core; wrapper минимальный; имена файлов префиксованы vendor/module.
+7. **Событие**: handler ограничен страницей, table/form id, `IBLOCK_ID` или module context; не исполняется на всей админке без причины.
+8. **Производительность**: обработчик меню/табов/списка не делает тяжёлые запросы на каждом render.
+9. **Экранирование**: весь HTML из БД/REQUEST проходит `htmlspecialcharsbx()`/`htmlspecialcharsEx()`.
+10. **Совместимость**: если пример взят с форума, он перепроверен по текущему core и переписан в `/local`/module style.
+11. **Rollback**: есть способ отключить handler, удалить wrapper, вернуть option/migration.
+12. **Smoke**: проверены list view, filter apply/reset, sort, pagination, inline edit, group action, edit save/apply/cancel, права R/W/D, session expiry.
+
+### Smoke-матрица для admin UI
+
+| Сценарий | Что проверить |
+|---|---|
+| Пользователь без доступа | пункт меню скрыт или `AuthForm('Доступ запрещён')`; прямой URL не отдаёт данные |
+| Пользователь `R` | видит список/форму read-only; кнопки save/delete/group action disabled/hidden |
+| Пользователь `W` | может сохранить, применить, удалить, выполнить group action; есть `sessid` |
+| Фильтр | apply/reset, пустые значения, спецсимволы, дата from/to, сохранение между переходами |
+| Сортировка/пагинация | стабильный `order`, нет дублей/пропусков на страницах, page size сохраняется |
+| Inline edit | валидные значения сохраняются, ошибки через `AddUpdateError`, XSS не появляется |
+| Group action | `selected` и “для всех отфильтрованных” не трогают лишнее; ошибки через `AddGroupError` |
+| Форма | save/apply/back, active tab после apply, обязательные поля, ошибка POST восстанавливает значения |
+| Обновление | после обновления ядра wrapper на месте, handlers зарегистрированы один раз, UI state не сброшен |
+
+### Источники для перепроверки
+
+- Official docs: [`OnAdminListDisplay`](https://dev.1c-bitrix.ru/api_help/main/events/onadminlistdisplay.php), [`OnAdminTabControlBegin`](https://dev.1c-bitrix.ru/api_help/main/events/onadmintabcontrolbegin.php), [`OnAdminContextMenuShow`](https://dev.1c-bitrix.ru/api_help/main/events/onadmincontextmenushow.php), [`OnBuildGlobalMenu`](https://dev.1c-bitrix.ru/api_help/main/events/onbuildglobalmenu.php).
+- Official docs: [`CAdminList`](https://dev.1c-bitrix.ru/api_help/main/general/admin.section/classes/cadminlist/index.php), [`CAdminTabControl`](https://dev.1c-bitrix.ru/api_help/main/general/admin.section/classes/cadmintabcontrol/index.php), [`CAdminTabControl::Buttons`](https://dev.1c-bitrix.ru/api_help/main/general/admin.section/classes/cadmintabcontrol/buttons.php), [`CAdminTabControl::ActiveTabParam`](https://dev.1c-bitrix.ru/api_help/main/general/admin.section/classes/cadmintabcontrol/activetabparam.php).
+- Official learning: [размещение модуля в административном меню](https://dev.1c-bitrix.ru/learning/course/index.php?COURSE_ID=101&LESSON_ID=3434), [пользовательские формы редактирования элементов](https://dev.1c-bitrix.ru/learning/course/index.php?COURSE_ID=43&LESSON_ID=5258), [настройка форм элементов и разделов](https://dev.1c-bitrix.ru/learning/course/?COURSE_ID=34&LESSON_ID=1883&LESSON_PATH=3905.4477.9921.1883).
+- Forum triangulation: темы про удаление вкладки “Реклама” и подключение JS в админку показывают типичные соблазны (`admin_header.php`, CSS hide, правка `/bitrix/admin/file.php`) и более правильный маршрут через `OnAdminTabControlBegin`/`OnAdmin*`. Используй их только как подсказку, затем снова проверяй core.
+
 ## Gotchas
 
 - **Имена переменных фильтра глобальные** — `InitFilter(['find_id', 'find_name'])` создаёт `global $find_id, $find_name`. Без `global $$f` в своём коде они недоступны. Всегда делай `foreach ($arFilterFields as $f) global $$f;` после `InitFilter`.
@@ -1485,11 +2027,9 @@ public function UnInstallFiles(): bool
 - **Inline edit** — чтобы строка была редактируемой, вызови хотя бы один `Add*Field` с edit-вариантом и обработай `$lAdmin->EditAction()` и `$lAdmin->GetEditFields()`.
 - **`CAdminForm` vs `CAdminTabControl`** — `CAdminForm` сам открывает буферизацию в конструкторе (`ob_start()`) и рендерит форму в `Show()`. Если используешь `CAdminTabControl` — пиши `<form>` сам.
 - **`OnUserTypeBuildList`** вызывается при каждом обращении к типам через `CUserTypeManager::GetUserType()`. Handler должен только возвращать описание, без запросов в БД.
-- **`CUserTypeEntity::Add`** vs `CUserTypeManager`** — создание поля через `CUserTypeEntity`, чтение значений через `CUserTypeManager`. Это разные классы.
+- **`CUserTypeEntity::Add` vs `CUserTypeManager`** — создание поля через `CUserTypeEntity`, чтение значений через `CUserTypeManager`. Это разные классы.
 - **Файлы в `/bitrix/admin/`** — именно туда копируются страницы при установке модуля. Без копирования `menu.php` будет ссылаться на несуществующие URL. `InstallFiles()` / `UnInstallFiles()` обязательны.
 - **`htmlspecialcharsbx` vs `htmlspecialcharsEx`** — первая для атрибутов (value="..."), вторая для HTML-контента. Обе защищают от XSS. Не используй прямой вывод данных из БД без экранирования.
-
----
 
 ## Source: `grid-admin-modern.md`
 
