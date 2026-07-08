@@ -164,6 +164,11 @@ grep -R "behavior-routing\\|project-intake\\|reference-map\\|developer-primitive
 | B062 | shop/filter optimization |
 | B063 | agents/imports optimization |
 | B064 | frontend/assets optimization |
+| B065 | update-safe admin customization |
+| B066 | admin form tab customization |
+| B067 | admin list group action/context button |
+| B068 | admin menu section |
+| B069 | module admin page placement |
 
 Оценка:
 
