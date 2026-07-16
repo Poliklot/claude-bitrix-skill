@@ -29,6 +29,8 @@ rg -n 'AddEventHandler|EventManager::getInstance\(\)->addEventHandler|On[A-Z][A-
 
 ## Где держать код
 
+Для public page/layout/include решений дополнительно открывай [project-layout-and-includes.md](project-layout-and-includes.md): `header.php`/`footer.php`/`.section.php` и `/include` — проектные соглашения, а не универсальная схема.
+
 | Что меняется | Предпочтительный слой | Не делай |
 |---|---|---|
 | Business rule | service/helper в `local/modules/<vendor>.<module>/lib` или project service | толстая логика в `template.php` |
@@ -117,6 +119,7 @@ Boundary обязан:
 - Для переносимых сущностей используй `XML_ID`, `CODE`, `API_CODE`, symbolic names, HL table name.
 - Не хардкодь numeric IDs без runtime lookup.
 - Для 1С/CommerceML критичны `XML_ID`, `CML2_LINK`, external IDs, price type/currency/store mapping.
+- Для `.env`, `Option`, numeric IDs и stable-key registry открывай [project-configuration.md](project-configuration.md): классифицируй value, проверяй scope/uniqueness, missing/duplicate, type validation, cache/invalidation и secret boundary.
 
 ### Idempotency
 

@@ -264,6 +264,57 @@ rg -n 'namespace |ServiceLocator|EventManager::getInstance|Loader::registerAutoL
 
 **Проверить:** project tooling, autoload, rollback, idempotency, tests/smoke.
 
+## 14. Разместить page/include/global block
+
+**Открыть:** [project-layout-and-includes.md](project-layout-and-includes.md), затем `project-intake.md`, `templates.md`, `components.md`.
+
+**Найти:**
+
+```bash
+find . -maxdepth 5 -type f \( -name header.php -o -name footer.php -o -name '.section.php' \) -print
+rg -n 'SITE_TEMPLATE_PATH|IncludeComponent\(|IncludeFile\(|main\.include|SetViewTarget|ShowViewContent|AddViewContent' \
+  . --glob '*.php' --glob '!upload/**' --glob '!bitrix/cache/**' --glob '!www/bitrix/cache/**'
+```
+
+**Решить:**
+
+- project page content → page/section entrypoint;
+- global layout → подтверждённый active template;
+- editor fragment → project include/property/iblock convention;
+- component HTML → copied template;
+- query/business rule → component/service;
+- delayed/personal block → project view target/composite dynamic boundary.
+
+**Не делать:** не навязывать `/include`, `main` template или rigid placement; не копировать stock component logic ради HTML.
+
+**Проверить:** active template, `SITE_ID`/`SITE_DIR`, edit mode, first/second cache pass, guest/authorized, stock-template provenance.
+
+## 15. Настроить `.env`/`Option`/entity ID
+
+**Открыть:** [project-configuration.md](project-configuration.md), затем `production-best-practices.md`, `entities-migrations.md` и доменный reference.
+
+**Найти:**
+
+```bash
+find . -maxdepth 4 -type f \( -name '.env.example' -o -name composer.json -o -name constants.php -o -name init.php \) -print
+rg -l 'Dotenv|\$_ENV|\$_SERVER|getenv\(|Option::get|COption::GetOption|IBLOCK_ID|FORM_ID|HLBLOCK_ID' \
+  local . --glob '*.php' --glob '*.example' --glob '!bitrix/**' --glob '!www/bitrix/**' --glob '!vendor/**'
+```
+
+Discovery должен вывести только filenames. Выбранные файлы проверять локально и точечно; не переносить совпавшие config-строки в transcript/evidence без редактирования secrets.
+
+**Решить:**
+
+1. classify: secret/deployment option/admin option/entity reference/content;
+2. preserve current config/bootstrap convention;
+3. validate string→type and required/range/host policy;
+4. for entity: stable key + sufficient scope + migration/registry, exactly one row;
+5. define protected cache invalidation and safe public error.
+
+**Не делать:** не добавлять Dotenv автоматически, не считать numeric ID secret, не lookup-ить только по `CODE`, не передавать `null`/`0`, не делать anonymous cache reset.
+
+**Проверить:** dev/stage/prod, multisite, missing/duplicate, entity type/code/site, secret leaks, cache refresh and smoke.
+
 ## Ответ после playbook
 
 Формат:

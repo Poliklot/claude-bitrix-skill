@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.35.0] — 2026-07-16
+
+### Added
+- `project-layout-and-includes.md` в full и MCP Market compact версиях: project-first карта public root, active template, `.section.php`, `header.php`/`footer.php`/page, `IncludeFile`/`main.include`, delayed areas, copied templates, multisite/edit/cache/composite verification.
+- `project-configuration.md` в full и compact версиях: классификация secrets/deployment/admin options/entity references/content, выбор между environment/`Option`/constants/registry, type validation, stable-key scope, missing/duplicate contract и защищённая cache invalidation.
+- Eval prompts `B070–B074` для placement, `.section.php`, выбора config/ID, защиты registry cache reset и изменения логики stock component без копирования ядра.
+
+### Changed
+- `behavior-routing.md`, `project-intake.md`, `task-playbooks.md`, `developer-primitives.md`, `developer-cards.md`, `first-answer-pitfalls.md`, `answer-contracts.md`, `core-grep-cookbook.md`, `reference-map.md` и `release-gate.md` связаны с новыми project layout/config маршрутами.
+- `BITRIX_PROJECT_CONTEXT.template.md` сохраняет include/delayed-area convention и безопасный config/stable-ID contract без значений secrets; `validate_skill.py` контролирует full/compact sync и regression `B070–B074`.
+- README, PLAN и обе skill-версии обновлены под релиз `1.35.0`.
+
 ## [1.34.0] — 2026-07-08
 
 ### Added
@@ -443,7 +455,8 @@
 ### Added
 - Первый публичный релиз: `SKILL.md`, progressive disclosure архитектура
 
-[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.34.0...HEAD
+[Unreleased]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.35.0...HEAD
+[1.35.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.34.0...v1.35.0
 [1.34.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.33.0...v1.34.0
 [1.33.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.32.0...v1.33.0
 [1.32.0]: https://github.com/Poliklot/bitrix-agent-skill/compare/v1.31.0...v1.32.0

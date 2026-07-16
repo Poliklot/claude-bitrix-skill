@@ -69,5 +69,10 @@
 | B067 | Групповое действие/кнопка списка | components-admin-ui + users-security | no sessid/rights |
 | B068 | Раздел в меню админки | components-admin-ui + php-architecture/modules | edit `.left.menu.php`/core menu |
 | B069 | Где хранить admin-страницы | components-admin-ui + php-architecture/modules | business logic in `/bitrix/admin` |
+| B070 | Куда положить global block | project-layout-and-includes + project-intake + components | universal `/include`/rigid placement without project facts |
+| B071 | `.section.php` для name/SEO | project-layout-and-includes + components/search-seo | mix `$sSectionName`/properties/SetTitle or manual meta |
+| B072 | `.env`/`Option`/constant/lookup для `IBLOCK_ID` | project-configuration + php/content | add Dotenv automatically or lookup only by `CODE` |
+| B073 | Query flag для reset registry cache | project-configuration + users-security/search-seo | anonymous cache reset |
+| B074 | Изменить выборку stock component | project-layout-and-includes + components-admin-ui + php-architecture | copy core `component.php` into template |
 
 Gate: перед релизом бытового слоя выбрать минимум 15 prompt из разных доменов; `fail = 0`. Полный checklist — `release-gate.md`.

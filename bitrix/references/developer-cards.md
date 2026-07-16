@@ -301,3 +301,27 @@ $image = CFile::ResizeImageGet(
 **Где проверить:** component calls, `/bitrix/admin/1c_import.php`, `/bitrix/admin/1c_exchange.php`, `sale_exchange_log`, `XML_ID`, `CML2_LINK`, настройки активность/раздел/site/цена/остаток.
 
 **Побочные эффекты:** дубли товаров/offers, price type/currency, остатки/резервы, активность разделов, кеш/индекс, права, расписание обмена.
+
+## 21. Структура страницы / include / header-footer
+
+**Запрос:** “куда подключить компонент”, “где хранить включаемый блок”, “что положить в header/footer”, “как работает `.section.php`”.
+
+**Не делай:** не объявляй `/include`, `local/templates/main` или одну таблицу размещения универсальным правилом; не используй `require '/bitrix/header.php'`; не копируй весь stock component ради изменения HTML.
+
+**Делай:** найди public root, active template, фактический page/component/include convention. Разделяй page/section properties, global layout, component template, data preparation и service. Для позднего вывода проверь project `SetViewTarget`/`AddViewContent`; для personal HTML — composite dynamic boundary.
+
+**Где проверить:** [project-layout-and-includes.md](project-layout-and-includes.md), `header.php`, `footer.php`, `.section.php`, page `index.php`, `IncludeComponent`, `IncludeFile`, `main.include`, local/stock templates.
+
+**Побочные эффекты:** component/composite cache, edit mode, `SITE_ID`/`SITE_DIR`, multisite/language, SEO inheritance, template provenance после обновления core.
+
+## 22. Project config / `.env` / `Option` / entity IDs
+
+**Запрос:** “куда вынести `IBLOCK_ID`”, “как хранить настройки разных стендов”, “использовать `.env` или `Option`”.
+
+**Не делай:** не тащи Composer/Dotenv ради одного значения, не называй numeric ID secret, не lookup-ь iblock только по `CODE` без scope, не возвращай `null`/`0` в component/API и не очищай registry анонимным query flag.
+
+**Делай:** классифицируй secret/deployment option/admin option/entity reference/content. Сохрани existing convention, валидируй string→type, для entity используй stable key + достаточный scope + migration/registry и требуй ровно одну запись. Определи cache/invalidation и safe error contract.
+
+**Где проверить:** [project-configuration.md](project-configuration.md), `.env.example`, bootstrap/init, module `Option`, migrations/install steps, iblock/form/HL registry, deployment config.
+
+**Побочные эффекты:** secret leak, dev/stage/prod ID drift, duplicate `CODE`, multisite scope, stale registry cache, публичная утечка internal config через exception/log.

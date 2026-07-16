@@ -6,6 +6,8 @@
 |---|---|
 | Режим работы, аудит проекта, `BITRIX_PROJECT_CONTEXT.md` и типовые маршруты правок | `behavior-routing.md`, `project-intake.md`, `../assets/BITRIX_PROJECT_CONTEXT.template.md`, `task-playbooks.md`, `core-grep-cookbook.md` |
 | Бытовой ответ: meta/head/assets/includes/request/user/images/cache/mail | `developer-primitives.md`, `first-answer-pitfalls.md`, `developer-cards.md`, `answer-contracts.md` |
+| Public root, `.section.php`, header/footer/page, include/delayed areas | `project-layout-and-includes.md`, `project-intake.md`, `components-admin-ui.md` |
+| `.env`, `Option`, constants, stable entity IDs, dev/stage/prod drift | `project-configuration.md`, `php-architecture.md`, `content-data.md`, `users-security.md` |
 | Release/eval бытового слоя | `eval-prompts.md`, `release-gate.md` |
 | Core audit, version mismatch, tail modules, task routing, diagnostics, pitfalls, runtime smoke | `core-routing.md`, `version-impact.md`, `shop-core-tail-modules.md` |
 | PHP architecture, production practice, modules, ORM, DB, events, validation, HTTP | `php-architecture.md` |
@@ -83,7 +85,9 @@
 | `php-workflow.md` | `php-architecture.md` |
 | `pitfalls-matrix.md` | `core-routing.md` |
 | `production-best-practices.md` | `core-routing.md` |
+| `project-configuration.md` | `project-configuration.md` |
 | `project-intake.md` | `project-intake.md` |
+| `project-layout-and-includes.md` | `project-layout-and-includes.md` |
 | `project-optimization-audit.md` | `search-seo-ops.md`, `core-grep-cookbook.md`, `developer-cards.md` |
 | `push-pull.md` | `commerce-shop.md` |
 | `reference-map.md` | `reference-map.md` |
@@ -124,6 +128,7 @@
 ## Compact guardrails
 
 - Если задача про конкретный repo — сначала `BITRIX_PROJECT_CONTEXT.md` при наличии, затем факты проекта, потом ответ.
+- Для layout/include не навязывать `/include` или один active template; для config/ID — не навязывать `.env`/Composer или lookup только по `CODE` без scope/validation.
 - Если модуль optional — сначала module check; если версия отличается от baseline — `version-impact.md`.
 - Не отвечать прямым SQL/core edit/global cache-off/manual meta первым вариантом; для composite не путать `setFrameMode` vote и `createFrame` dynamic boundary.
 - Для shop/1C не использовать commerce route без `catalog`/`sale`/`currency` checks.

@@ -28,6 +28,8 @@
 | shop/catalog/sale | module check for `catalog`, `sale`, `currency` | catalog/sale/currency API, shop component params | events, recalc, discounts, reserves, order errors |
 | 1C/CommerceML | `catalog.import.1c`, `sale.export.1c`, `checkauth`, `mode=file`, `mode=import`, `XML_ID`, `CML2_LINK` | exchange settings/logs/import flow | upload is not import success |
 | custom logic | `local/modules`, `ServiceLocator`, `EventManager`, autoload | local module/service/migration/event/controller | idempotency, rollback, tooling, smoke |
+| page/include/global block | active template, header/footer/`.section.php`, `IncludeComponent`, `IncludeFile`, `main.include`, view targets | page/layout/include/component template/service/dynamic area по `project-layout-and-includes.md` | edit mode, multisite, cache/composite first+second pass, guest/user, provenance |
+| `.env`/`Option`/entity ID | config/bootstrap, Dotenv/env, `Option`, constants, migrations/registry | classify value; preserve convention; validate; stable key + scope + exactly-one resolution по `project-configuration.md` | dev/stage/prod, duplicate/missing, secret leak, protected invalidation |
 
 ## Answer format
 

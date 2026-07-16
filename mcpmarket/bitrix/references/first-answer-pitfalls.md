@@ -8,6 +8,8 @@
 | CSS/JS | Echo `<link>`/`<script>` или правка ядра. | `Asset::addCss/addJs/addString`, файлы шаблона компонента, `ShowHead`/`ShowBodyScripts`. |
 | редактируемый текст | Хардкод в `template.php`. | `IncludeFile`, включаемая область, свойство страницы, инфоблок. |
 | компонент | Правка `www/bitrix/modules/*/components`. | Найти `IncludeComponent`, параметры и шаблон в `local/templates/.../components`. |
+| куда положить block/include/component | Универсальная `/include`-схема или rigid header/footer/index rule. | Public root + active template + project convention; `project-layout-and-includes.md`. |
+| куда вынести entity ID/config | Автоматический `.env`/Composer, lookup только по `CODE`, silent `null`. | Classify value, preserve convention, validate type; stable key + scope + migration/registry по `project-configuration.md`. |
 | текущий пользователь | `$_SESSION`/cookie. | `$USER`, группы/права, project auth wrapper. |
 | GET/POST | Сырые `$_REQUEST` без фильтрации. | `Context::getCurrent()->getRequest()`, CSRF для POST. |
 | URL/query | Конкатенация `REQUEST_URI`. | `GetCurPageParam`, URL builder, SEF/pagination. |
@@ -31,4 +33,5 @@
 - Не отключать кеш глобально первым ответом: сначала определить слой кеша.
 - Не смешивать browser title, H1, meta description, page/section properties, component params и iblock SEO templates.
 - Не обещать наличие `sale`, `catalog`, `currency`, `bizproc`, `pull`, `socialnet` без проверки core.
+- Не навязывать `/include`, `.env`, Composer или autodefine без project convention, scope, validation, error и invalidation contract.
 - На короткий вопрос отвечать коротко: штатный механизм, где проверить, минимальный пример, side effects.

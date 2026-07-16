@@ -137,7 +137,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 Установить конкретную версию:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.34.0 --claude
+curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.sh | bash -s -- --version 1.35.0 --claude
 ```
 
 То же самое для PowerShell:
@@ -146,7 +146,7 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Claude
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Codex
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Both
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.34.0 -Claude
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/install.ps1))) -Version 1.35.0 -Claude
 ```
 
 </details>
@@ -159,6 +159,8 @@ curl -fsSL https://raw.githubusercontent.com/Poliklot/bitrix-agent-skill/master/
 | Аудит проекта | быстрый разбор реального проекта, `BITRIX_PROJECT_CONTEXT.md`, версии модулей, `local/*`, компоненты, шаблоны, events/agents, tooling |
 | Аудит оптимизаций | что уже оптимизировано, ошибки component/tagged/composite cache, DB/ORM/N+1, images/assets, agents/imports и shop bottlenecks, safe wins, runtime/perfmon evidence |
 | Компоненты и шаблоны | контракты стандартных компонентов, скопированные шаблоны, `result_modifier.php`, `component_epilog.php`, AJAX, пагинация |
+| Структура и включаемые области | public root, active template, `.section.php`, `header.php`/`footer.php`/`index.php`, `IncludeFile`, `main.include`, delayed areas, multisite/cache/edit-mode проверки |
+| Конфигурация проекта | `.env`, `Option`, константы, stable keys, ID инфоблоков/форм/HL, validation, missing/duplicate и cache invalidation без утечки secrets |
 | Админка и backoffice | `CAdminList`, `CAdminTabControl`, `CAdminForm`, `OnAdmin*`, меню, права, стабильные UI state id и update-safe кастомизация через `/local` |
 | Контент | инфоблоки, HL-блоки, UF, формы, блог, форум, опросы, landing, fileman, поиск, SEO |
 | Интернет-магазин | `catalog`, `sale`, `currency`, SKU/торговые предложения, цены, остатки, корзина, оформление заказа, заказы, оплаты, доставка, скидки |
@@ -205,6 +207,8 @@ make validate-optimization-evidence OPTIMIZATION_EVIDENCE_DIR=evidence/YYYY-MM-D
 /bitrix Проверь по core, почему вторая страница каталога пустая после фильтра
 /bitrix Разбери, почему 1С выгрузила товар, но на сайте нет цены и остатка
 /bitrix Найди слой стандартного шаблона для form и объясни intranet-вариант
+/bitrix Проверь, куда в этом проекте положить общий редактируемый блок и не сломать composite
+/bitrix Разбери, как здесь хранить IBLOCK_ID между dev/stage/prod без magic numbers
 /bitrix Сформируй безопасный для продакшена план доработки оформление заказа и перечисли грабли
 /bitrix Проверь, можно ли в этом проекте идти в sale/catalog, или магазинный маршрут пока отложен
 /bitrix Почему REST событие заказа не прилетело во внешний вебхук?

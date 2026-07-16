@@ -12,6 +12,8 @@
 | “Как подключить CSS/JS?” | Echo `<link>`/`<script>` или правка ядра. | `Asset::addCss/addJs/addString`, файлы шаблона компонента, `ShowHead`/`ShowBodyScripts`. |
 | “Как сделать редактируемый текст?” | Хардкод строки в `template.php`. | `IncludeFile`, включаемая область, свойство страницы, инфоблок. |
 | “Как править компонент?” | Правка `www/bitrix/modules/*/components`. | Найти вызов `IncludeComponent`, параметры и шаблон в `local/templates/.../components`. |
+| “Куда положить блок/include/компонент?” | Универсальная `/include`-схема или жёсткое правило “только header/footer/index”. | Найти public root, active template и project convention; выбрать page/layout/include/template/service по `project-layout-and-includes.md`. |
+| “Куда вынести `IBLOCK_ID`/настройку?” | Автоматически добавить `.env`/Composer, lookup только по `CODE` или silent `null`. | Классифицировать value, сохранить existing convention, validate type; stable key + scope + migration/registry по `project-configuration.md`. |
 | “Как получить пользователя?” | `$_SESSION`/cookie. | `$USER`, группы/права, project auth wrapper. |
 | “Как получить GET/POST?” | Сырые `$_REQUEST` без фильтрации. | `Context::getCurrent()->getRequest()`, CSRF для POST. |
 | “Как добавить параметр к URL?” | Конкатенация `$_SERVER['REQUEST_URI']`. | `GetCurPageParam`, project URL builder, учёт SEF/pagination. |
@@ -37,6 +39,7 @@
 6. **Не обещай наличие модуля.** `sale`, `catalog`, `currency`, `bizproc`, `pull`, `socialnet` активны только после проверки в локальном core.
 7. **Не делай “админский клик-путь” единственным решением**, если нужна воспроизводимая разработка: миграция, install step, CLI, сервис.
 8. **Не отвечай длинной архитектурой на короткий бытовой вопрос.** Дай короткий правильный путь, затем “где проверить”.
+9. **Не навязывай структуру/config stack.** `/include`, `.env`, Composer, numeric constants и autodefine — только после проверки project convention, scope, validation, error и invalidation contract.
 
 ## Формат хорошего первого ответа
 

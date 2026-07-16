@@ -388,6 +388,7 @@ Covered by `shop-integrations-webservice.md`:
 | обновить файлы и картинки | `import-export.md`, `file-upload-modern.md`, `clouds.md` |
 | сделать миграцию структуры | `entities-migrations.md`, `operations-runbook.md` |
 | “в админке есть, на сайте нет” | `diagnostic-visibility.md`, `component-dataflow-debugging.md` |
+| выбрать `.env`/`Option`/constants или убрать numeric IDs | `project-configuration.md`, `entities-migrations.md`, затем domain reference |
 
 ## Компоненты и фронт
 
@@ -402,6 +403,7 @@ Covered by `shop-integrations-webservice.md`:
 | настроить `PageNavigation`, `PAGEN_N` или “Показать ещё” | `pagination.md`, `components.md`, `grid-admin-modern.md` |
 | сделать AJAX endpoint | `events-routing.md`, `security.md` |
 | проверить отсутствие `local/*` | `core-audit-matrix.md`, `standard-components-noncommerce.md` |
+| решить, где разместить page/include/global block | `project-layout-and-includes.md`, `templates.md`, `components.md` |
 
 ## Поиск, SEO, кеш
 
@@ -460,6 +462,7 @@ Covered by `shop-integrations-webservice.md`:
 | проверить vendor noise | `php-testing.md`, `php-quality.md` |
 | спроектировать production-safe доработку | `production-best-practices.md`, затем domain reference |
 | понять, куда класть код | `production-best-practices.md`, `php-workflow.md`, `modules-loader.md` |
+| определить config/bootstrap/stable-key registry | `project-configuration.md`, `production-best-practices.md`, `entities-migrations.md` |
 
 ## Production practices / pitfalls / runtime
 

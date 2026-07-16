@@ -12,7 +12,9 @@
 4. Вопрос “почему не работает”? Открыть debug/domain reference и идти по цепочке source → params → template/result → cache/rights/index.
 5. Вопрос про `sale`/`catalog`/`1C`? Сначала module check, потом shop/1C reference.
 6. Вопрос “как правильно/куда класть/лучшие практики”? Открыть production layer.
-7. Вопрос “релизим/пушим”? Открыть [release-gate.md](release-gate.md).
+7. Вопрос про `header.php`/`footer.php`/`.section.php`/include? Открыть [project-layout-and-includes.md](project-layout-and-includes.md).
+8. Вопрос про `.env`/`Option`/ID/разные стенды? Открыть [project-configuration.md](project-configuration.md).
+9. Вопрос “релизим/пушим”? Открыть [release-gate.md](release-gate.md).
 
 ## Режимы
 
@@ -22,6 +24,8 @@
 | Проектная правка | “найди где”, “почини”, “почему у нас”, “в этом проекте” | `project-intake`, `task-playbooks`, затем узкий domain reference | Конкретный файл/параметр, причина, патч или next action. |
 | Диагностическая цепочка | “не выводится”, “в админке есть, на сайте нет”, “404 отдаёт 200”, “письмо не уходит” | `core-grep-cookbook`, domain diagnostics | Проверки по цепочке и вероятная точка отказа; не начинать с cache-off. |
 | Component/template | `IncludeComponent`, шаблон, `$arResult`, `result_modifier`, `component_epilog` | `components`, `templates`, `component-dataflow-debugging`, `core-grep-cookbook` | Где править: params/template/result_modifier/component_epilog/local component. |
+| Структура/include | public root, `.section.php`, `header.php`, `footer.php`, `index.php`, `main.include`, `IncludeFile`, “куда положить” | `project-layout-and-includes`, `project-intake`, `templates`, `components` | Фактический active layer, placement, project convention, cache/edit/multisite checks. |
+| Конфигурация/ID | `.env`, `Option`, constants, `IBLOCK_ID`, `FORM_ID`, dev/stage/prod | `project-configuration`, `project-intake`, `production-best-practices`, domain reference | Класс значения, источник, validation, stable-key scope, missing/duplicate/cache contract. |
 | Production practice | “как правильно”, “архитектура”, “куда класть”, “best practices”, “не сломать обновления” | `production-best-practices`, `pitfalls-matrix`, `php-workflow`, domain reference | Решение через local module/service/migration/event, side effects, verification. |
 | Зависит от модуля | `iblock`, `highloadblock`, `form`, `sale`, `catalog`, `currency`, `rest`, `bizproc`, `pull` | Module version check, then relevant reference | Если module есть — API route; если нет — ограничение/fallback. |
 | Shop/1C | товары, SKU, цены, остатки, заказ, корзина, доставка, оплата, 1С, CommerceML | `shop-task-matrix`, `catalog`, `sale`, `currency`, `commerce-1c-integration` after checks | API-only route, side effects: events, recalculation, stock, discounts, exchange. |
@@ -54,6 +58,8 @@
 - Вопрос про `sale` без подтверждённого модуля → module check, не весь commerce bundle.
 - Вопрос про “как правильно” без конкретного module → production layer, не все domain references.
 - Вопрос “где поменять верстку компонента” → components/templates/dataflow, не iblocks/sale.
+- Вопрос “куда положить блок” → project layout + факты active template, не универсальная `/include`-схема.
+- Вопрос “куда вынести ID” → project configuration + migration/stable key, не автоматический `.env`/Composer.
 - Вопрос “форма не шлёт письмо” → webforms/mail/agents/logs, не SEO/catalog.
 
 ## Ответные формы

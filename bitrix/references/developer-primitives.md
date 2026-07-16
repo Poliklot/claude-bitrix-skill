@@ -1,6 +1,6 @@
 # Бытовые Bitrix-примитивы
 
-Загружай этот файл первым для коротких вопросов разработчика вида “как в PHP сделать X в Битриксе”, прежде чем уходить в глубокую архитектуру. Сначала сопоставь вопрос с готовым Bitrix-примитивом, а не предлагай чистый PHP/HTML. Если нужен готовый ответный маршрут в формате “Запрос → Не делай → Делай → Где проверить → Побочные эффекты”, открой [developer-cards.md](developer-cards.md). Чтобы отсеять плохой первый вариант ответа, открой [first-answer-pitfalls.md](first-answer-pitfalls.md). Если нужно быстро подтвердить проектный факт grep-ом, открой [core-grep-cookbook.md](core-grep-cookbook.md). Чтобы ответ был коротким и правильно структурированным, открой [answer-contracts.md](answer-contracts.md).
+Загружай этот файл первым для коротких вопросов разработчика вида “как в PHP сделать X в Битриксе”, прежде чем уходить в глубокую архитектуру. Сначала сопоставь вопрос с готовым Bitrix-примитивом, а не предлагай чистый PHP/HTML. Если нужен готовый ответный маршрут в формате “Запрос → Не делай → Делай → Где проверить → Побочные эффекты”, открой [developer-cards.md](developer-cards.md). Чтобы отсеять плохой первый вариант ответа, открой [first-answer-pitfalls.md](first-answer-pitfalls.md). Если нужно быстро подтвердить проектный факт grep-ом, открой [core-grep-cookbook.md](core-grep-cookbook.md). Для размещения page/include открой [project-layout-and-includes.md](project-layout-and-includes.md), для `.env`/`Option`/ID — [project-configuration.md](project-configuration.md). Чтобы ответ был коротким и правильно структурированным, открой [answer-contracts.md](answer-contracts.md).
 
 ## Source notes
 
@@ -28,6 +28,8 @@
 | “Как подключить модуль?” | `use Bitrix\Main\Loader; if (!Loader::includeModule('iblock')) { ... }`; не использовать API модуля без проверки наличия. |
 | “Как вставить редактируемый кусок текста?” | Для контентного текста — `$APPLICATION->IncludeFile(...)` / включаемые области / свойства страницы / инфоблок, а не захардкоженный PHP в шаблоне. |
 | “Как подключить компонент?” | `$APPLICATION->IncludeComponent(...)`; перед правкой сначала найти фактический вызов на странице и скопированный шаблон компонента в `local/templates/.../components/...`. |
+| “Куда положить блок или компонент?” | Сначала найти active template/page convention; затем выбрать page, header/footer, include, component template или service по [project-layout-and-includes.md](project-layout-and-includes.md), не объявлять `/include` универсальным. |
+| “Куда вынести `IBLOCK_ID`/`FORM_ID`?” | Сначала определить existing config convention; предпочитать stable key + migration/registry, а numeric env/option валидировать и перепроверять по entity. См. [project-configuration.md](project-configuration.md). |
 | “Как сделать 404?” | Не просто echo “404”. Проверить проектный `404.php`, `CHTTP::SetStatus('404 Not Found')`, `ERROR_404`, `LocalRedirect`/routing policy и composite/cache side effects. |
 | “Как сделать редирект?” | Обычно `LocalRedirect($url)` / project router. Перед редиректом не выводить HTML; учитывать `SITE_DIR`, ЧПУ, canonical/SEO и бесконечные циклы. |
 | “Как ресайзить картинку?” | Для файлов Bitrix использовать `CFile::ResizeImageGet(...)` / project image service, а не вручную генерировать `<img width height>` без физического resize/cache. |

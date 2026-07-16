@@ -25,6 +25,8 @@
 | “Как сделать X?” | Short how-to: механизм → где проверить → пример → side effects. |
 | “Почему X не работает?” | Debug chain: источник → params → project layer → cache/index/rights/logs. |
 | “Куда править?” | Layer answer: page/component params/template in `local`/local module/migration; не `www/bitrix/modules`. |
+| “Куда положить block/include?” | Project layout answer: public root + active template + existing convention → page/layout/include/template/service; verify edit/multisite/cache. |
+| “Куда вынести config/ID?” | Config answer: classify value → existing source → validation/stable-key scope → missing/duplicate/cache contract. |
 | “Напиши код” | Code answer: module facts, `use`, checks, escaping/filtering, cache/CSRF caveats. |
 | “Есть ли sale/catalog/1C?” | Module-dependent: проверить module dir/version + `Loader`; если нет — deferred/fallback. |
 | “Поменяй данные/права/контент” | Confirmation block from `SKILL.md` before direct data mutation. |
@@ -35,6 +37,8 @@
 - **Meta/title/head:** начать с `ShowHead()` + `ShowTitle()`, page/section properties, component SEO params, `SetTitle`, `SetPageProperty`; не с ручного `<meta>`.
 - **CSS/JS:** `Asset::addCss/addJs/addString`, `template_styles.css`, `script.js`, `ShowHead`/`ShowBodyScripts`; не echo из случайного компонента.
 - **Components:** найти `IncludeComponent`, params, template in `local/templates/.../components`; HTML — `template.php`, data — `result_modifier`/class, page effects — `component_epilog`.
+- **Layout/includes:** `project-layout-and-includes.md`; не навязывать `/include`/`main`, найти active layer, проверить edit mode, `SITE_ID`/`SITE_DIR`, first/second cache pass.
+- **Config/IDs:** `project-configuration.md`; не добавлять Dotenv автоматически, классифицировать value, validate type, stable key + scope + exactly-one resolution, protected invalidation.
 - **Iblock property:** проверить `PROPERTY_CODE`, `FIELD_CODE`, `DISPLAY_PROPERTIES`, `$arResult`, `result_modifier`; не SQL.
 - **Cache/composite:** назвать слой: component cache, `CACHE_GROUPS`, `setResultCacheKeys`, tagged cache, composite frame; не “выключи весь кеш”.
 - **Project optimization audit:** использовать compact `search-seo-ops.md` + `core-grep-cookbook.md`; не начинать с Redis/CDN/global clear без evidence.

@@ -1,6 +1,6 @@
 # Release gate для бытового Bitrix-слоя
 
-Открывай перед пушем, тегом, GitHub release или публикацией MCP Market-версии, когда изменения затрагивают бытовой слой: [behavior-routing.md](behavior-routing.md), [project-intake.md](project-intake.md), [task-playbooks.md](task-playbooks.md), [reference-map.md](reference-map.md), [developer-primitives.md](developer-primitives.md), [developer-cards.md](developer-cards.md), [first-answer-pitfalls.md](first-answer-pitfalls.md), [answer-contracts.md](answer-contracts.md), [core-grep-cookbook.md](core-grep-cookbook.md), [eval-prompts.md](eval-prompts.md) или навигацию в `SKILL.md`.
+Открывай перед пушем, тегом, GitHub release или публикацией MCP Market-версии, когда изменения затрагивают бытовой слой: [behavior-routing.md](behavior-routing.md), [project-intake.md](project-intake.md), [project-layout-and-includes.md](project-layout-and-includes.md), [project-configuration.md](project-configuration.md), [task-playbooks.md](task-playbooks.md), [reference-map.md](reference-map.md), [developer-primitives.md](developer-primitives.md), [developer-cards.md](developer-cards.md), [first-answer-pitfalls.md](first-answer-pitfalls.md), [answer-contracts.md](answer-contracts.md), [core-grep-cookbook.md](core-grep-cookbook.md), [eval-prompts.md](eval-prompts.md) или навигацию в `SKILL.md`.
 
 Цель: релизить только тогда, когда skill валиден локально и в CI, compact-версия не раздута, changelog/версия/PLAN синхронизированы, runtime evidence не содержит secrets, а бытовые prompt не проваливаются в чистый PHP/SQL/правку ядра.
 
@@ -169,6 +169,11 @@ grep -R "behavior-routing\\|project-intake\\|reference-map\\|developer-primitive
 | B067 | admin list group action/context button |
 | B068 | admin menu section |
 | B069 | module admin page placement |
+| B070 | public layout/include placement |
+| B071 | `.section.php` name/SEO semantics |
+| B072 | `.env`/`Option`/stable entity ID choice |
+| B073 | protected registry cache invalidation |
+| B074 | stock component selection logic change |
 
 Оценка:
 

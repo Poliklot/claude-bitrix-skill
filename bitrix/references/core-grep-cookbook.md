@@ -151,6 +151,23 @@ find . -maxdepth 6 -type f -path '*include*' \( -name '*.php' -o -name '*.html' 
 
 Если текст должен редактироваться контентщиком, сначала проверять `IncludeFile`, включаемые области, свойства страницы и инфоблок, а не хардкод в `template.php`.
 
+### Project config и entity IDs
+
+```bash
+find . -maxdepth 4 -type f \( \
+  -name '.env.example' -o -name composer.json -o -name '.settings.php' -o \
+  -name constants.php -o -name init.php \
+\) -print
+```
+
+```bash
+rg -l 'Dotenv|\$_ENV|\$_SERVER|getenv\(|Option::get|COption::GetOption|define\(|IBLOCK_ID|FORM_ID|HLBLOCK_ID|PRICE_TYPE|STORE_ID' \
+  local . --glob '*.php' --glob '*.example' \
+  --glob '!bitrix/**' --glob '!www/bitrix/**' --glob '!vendor/**' --glob '!upload/**'
+```
+
+Этот discovery выводит только filenames. Не заменять его массовым line-output: сначала локально выбрать нужный файл, затем редактировать secrets перед любым transcript/evidence. Перед ответом зафиксировать existing config/bootstrap, project Composer vs core vendor noise, string→type validation, stable-key scope, missing/duplicate behavior, cache invalidation и отсутствие secrets в Git/log/context. Подробный маршрут — [project-configuration.md](project-configuration.md).
+
 ## 6. Iblock/HL: свойства, элементы, связи
 
 ```bash

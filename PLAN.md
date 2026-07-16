@@ -7,7 +7,7 @@
 ## Текущий статус
 
 На дату этого плана:
-- актуальная версия навыка: `1.34.0`;
+- актуальная версия навыка: `1.35.0`;
 - точка входа: `bitrix/SKILL.md`;
 - reference-слой: `bitrix/references/*.md`;
 - non-commerce reference-слой прошёл ревизию против установленного core;
@@ -29,6 +29,7 @@
 - composite/cache слой в версии `1.31.0` вынесен в отдельный `composite-cache.md` и сверен по `main` 26.150.0: `setFrameMode` как голосование, `COMPOSITE_FRAME_MODE/TYPE` и `AutomaticArea`, `createFrame`/`FrameHelper` как dynamic boundary, `/bitrix/html_pages/`, `X-Bitrix-Composite`, персонализация и second request/cache pass.
 - добавлен следующий слой аудита оптимизаций: `project-optimization-audit.md` связывает кеши, composite, perfmon, SQL/ORM/N+1, templates/frontend, agents/imports и shop side effects в единый audit-report для запроса “как оптимизировать проект”.
 - admin UI слой усилен в версии `1.34.0`: `admin-ui.md` фиксирует update-safe стратегию кастомизации админки, core → docs/forums → core методику, `OnAdmin*`/`OnBuildGlobalMenu`, стабильные `table_id`/`grid_id`/tab ids, smoke-чеклист и anti-patterns правки ядра.
+- проектный developer UX усилен в версии `1.35.0`: `project-layout-and-includes.md` разводит public root, active template, `.section.php`, page/header/footer/include/component/service/delayed areas; `project-configuration.md` задаёт безопасный выбор между environment, `Option`, constants и stable-key registry с validation, missing/duplicate и protected invalidation contract.
 
 ## Активный и условный контур
 
@@ -140,7 +141,7 @@ bitrix-agent-skill/
 6. Для commerce/1C-аудита нельзя использовать production-данные, живые ключи и реальные персональные данные клиентов; нужны sandbox и тестовые CommerceML fixtures.
 7. Code-first coverage не равен runtime pass: для production-утверждений нужны smoke fixtures/evidence по `runtime-smoke-verification.md`.
 
-## Roadmap v1.31+
+## Roadmap v1.35+
 
 ### 0. Release/evidence automation — поддержка
 

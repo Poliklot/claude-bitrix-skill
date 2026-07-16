@@ -1,6 +1,6 @@
 # Release gate
 
-Открывай перед пушем, тегом, GitHub release или публикацией MCP Market-версии, если изменения затрагивают бытовой слой: `behavior-routing`, `project-intake`, `task-playbooks`, `reference-map`, `developer-primitives`, `developer-cards`, `first-answer-pitfalls`, `answer-contracts`, `core-grep-cookbook`, `eval-prompts` или навигацию `SKILL.md`.
+Открывай перед пушем, тегом, GitHub release или публикацией MCP Market-версии, если изменения затрагивают бытовой слой: `behavior-routing`, `project-intake`, `project-layout-and-includes`, `project-configuration`, `task-playbooks`, `reference-map`, `developer-primitives`, `developer-cards`, `first-answer-pitfalls`, `answer-contracts`, `core-grep-cookbook`, `eval-prompts` или навигацию `SKILL.md`.
 
 ## Stop conditions
 
@@ -89,7 +89,7 @@ Run at least 15 prompts from `eval-prompts.md` across different domains. Recomme
 B001, B004, B007, B009, B011, B013, B016, B018,
 B021, B023, B025, B028, B030, B031, B043, B046,
 B048, B052, B053, B057, B060, B061, B062, B063, B064,
-B065, B066, B067, B068, B069
+B065, B066, B067, B068, B069, B070, B071, B072, B073, B074
 ```
 
 Threshold:

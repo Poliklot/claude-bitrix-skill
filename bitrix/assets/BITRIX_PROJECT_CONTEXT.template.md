@@ -28,6 +28,9 @@
 - `local/components`:
 - `local/templates`:
 - `bitrix/templates` / `www/bitrix/templates`:
+- `.section.php` conventions:
+- Include convention (`IncludeFile` / `main.include` / template-local / module view):
+- Delayed areas (`SetViewTarget` / `AddViewContent` / custom):
 - `upload/` политика:
 - Особые entrypoints:
 
@@ -82,6 +85,19 @@
 - Где искать copied templates:
 - AJAX/lazy routes:
 - Pagination conventions:
+
+## Конфигурация и стабильные идентификаторы
+
+- Bootstrap/config files:
+- Environment loader: process env / Dotenv / custom / none:
+- `.env.example`: yes/no/path (без значений):
+- Module/project options:
+- Stable-key registry/migrations:
+- Numeric ID policy:
+- Missing/invalid/duplicate contract:
+- Config cache/invalidation:
+- Multisite/environment scope:
+- Secrets source/status: configured/missing/unknown (без значений):
 
 ## Интернет-магазин
 

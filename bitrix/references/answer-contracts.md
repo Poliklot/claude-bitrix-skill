@@ -173,6 +173,37 @@ if (!Loader::includeModule('<module>')) {
 
 Не править `www/bitrix/modules/*/components` как кастомизацию.
 
+### Структура страницы и include
+
+Первый ответ: “Сначала найду public root, active template и фактический page/include convention; `/include` и размещение в header/footer не универсальны”. Открыть [project-layout-and-includes.md](project-layout-and-includes.md).
+
+Формат:
+
+```text
+Найдено: [public root, active template/page, existing include/component].
+Слой: [page / layout / include / component template / service / delayed-dynamic area].
+Почему: [владелец данных и project convention].
+Проверить: [edit mode, SITE_ID/SITE_DIR, guest/user, first+second cache pass].
+```
+
+Не говорить первым шагом: “всегда кладите в `/include`”, “все components только в `index.php`”, “скопируйте весь component”.
+
+### Конфигурация и entity IDs
+
+Первый ответ: “Сначала классифицируем значение и проверим существующий config/bootstrap; numeric ID — не secret и не stable key”. Открыть [project-configuration.md](project-configuration.md).
+
+Формат:
+
+```text
+Класс значения: [secret / deployment config / admin option / entity reference / content].
+Текущий источник: [env / Option / code / registry / missing].
+Контракт: [type validation, stable-key scope, missing/duplicate, cache/invalidation].
+Изменение: [minimal project-native patch/migration].
+Проверить: [dev/stage/prod, multisite, secret leak, smoke].
+```
+
+Не говорить первым шагом: “поставьте Dotenv”, “ищите iblock только по `CODE`”, “верните `null`”, “сбрасывайте кеш query-параметром”.
+
 ### Iblock property
 
 Первый ответ: проверить `PROPERTY_CODE`, `FIELD_CODE`, `DISPLAY_PROPERTIES`, фактический `$arResult`, `result_modifier.php`.

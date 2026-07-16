@@ -25,6 +25,8 @@ MCP_FILE_LIMIT = 50
 CRITICAL_REFERENCES = [
     "behavior-routing.md",
     "project-intake.md",
+    "project-layout-and-includes.md",
+    "project-configuration.md",
     "task-playbooks.md",
     "reference-map.md",
     "developer-primitives.md",
@@ -46,7 +48,32 @@ REQUIRED_DESCRIPTION_TOKENS = [
     "catalog",
     "sale",
     "CommerceML",
+    "boxed Bitrix24",
+    ".section.php",
+    "project layout",
+    ".env",
+    "Option",
+    "stable entity IDs",
 ]
+
+CRITICAL_REFERENCE_MARKERS = {
+    "project-layout-and-includes.md": [
+        ".section.php",
+        "IncludeFile",
+        "bitrix:main.include",
+        "<public-root>/bitrix/components",
+        "SetViewTarget",
+    ],
+    "project-configuration.md": [
+        "rg -l",
+        "Option::get",
+        "IBLOCK_TYPE_ID",
+        "<redacted>",
+        "duplicate",
+    ],
+}
+
+NEW_EVAL_IDS = ["B070", "B071", "B072", "B073", "B074"]
 
 RUNTIME_SMOKE_TEMPLATES = [
     "runtime-smoke/evidence-summary.template.md",
@@ -89,6 +116,11 @@ RECOMMENDED_EVAL_IDS = [
     "B067",
     "B068",
     "B069",
+    "B070",
+    "B071",
+    "B072",
+    "B073",
+    "B074",
 ]
 
 REQUIRED_DEVELOPER_CARD_TERMS: list[tuple[str, list[str]]] = [
@@ -108,6 +140,8 @@ REQUIRED_DEVELOPER_CARD_TERMS: list[tuple[str, list[str]]] = [
     ("events", ["Обработчик события", "event handler"]),
     ("catalog/sale", ["Catalog/sale/currency", "catalog/sale/currency"]),
     ("1c", ["1С / CommerceML", "1С/CommerceML"]),
+    ("project layout", ["Структура страницы", "structure/include"]),
+    ("project config", ["Project config", "project config/entity IDs"]),
 ]
 
 FORBIDDEN_MARKERS = [
@@ -173,7 +207,8 @@ def extract_frontmatter(path: Path) -> tuple[dict[str, str], str]:
             flush()
             key, value = raw_line.split(":", 1)
             current_key = key.strip()
-            current_value = [value.strip().strip('"').strip("'")]
+            scalar = value.strip().strip('"').strip("'")
+            current_value = [] if scalar in {">-", ">", "|-", "|"} else [scalar]
         elif current_key is not None:
             current_value.append(raw_line.strip())
     flush()
@@ -200,7 +235,7 @@ def validate_skill_frontmatter(skill_dir: Path) -> None:
     ok = bool(name) and len(name) <= 64 and re.fullmatch(r"[a-z0-9-]+", name) is not None
     add(f"{label} name", ok, name or "missing name")
 
-    missing_tokens = [token for token in REQUIRED_DESCRIPTION_TOKENS if token not in text]
+    missing_tokens = [token for token in REQUIRED_DESCRIPTION_TOKENS if token not in description]
     add(
         f"{label} trigger coverage",
         bool(description) and not missing_tokens,
@@ -282,10 +317,21 @@ def validate_critical_references() -> None:
 
     missing: list[str] = []
     for name in CRITICAL_REFERENCES:
-        if not (FULL_SKILL / "references" / name).exists():
+        full_path = FULL_SKILL / "references" / name
+        compact_path = MCP_SKILL / "references" / name
+        if not full_path.exists():
             missing.append(f"full missing {name}")
-        if not (MCP_SKILL / "references" / name).exists():
+        if not compact_path.exists():
             missing.append(f"mcp missing {name}")
+        for variant, path in (("full", full_path), ("mcp", compact_path)):
+            if not path.exists():
+                continue
+            reference_text = read_text(path)
+            if len(reference_text.strip()) < 300:
+                missing.append(f"{variant} {name} too short")
+            for marker in CRITICAL_REFERENCE_MARKERS.get(name, []):
+                if marker not in reference_text:
+                    missing.append(f"{variant} {name} missing marker {marker}")
         if f"references/{name}" not in full_skill_md:
             missing.append(f"full SKILL.md not linked {name}")
         if f"references/{name}" not in mcp_skill_md:
@@ -297,12 +343,18 @@ def validate_critical_references() -> None:
 
 
 def validate_eval_prompts() -> None:
-    text = read_text(FULL_SKILL / "references" / "eval-prompts.md")
-    ids = sorted(set(re.findall(r"\bB\d{3}\b", text)))
-    missing = [prompt_id for prompt_id in RECOMMENDED_EVAL_IDS if prompt_id not in ids]
-    add("eval prompt count", len(ids) >= 50, f"{len(ids)} prompt ids")
-    add("recommended eval set", not missing, "missing: " + ", ".join(missing) if missing else "ok")
-    add("eval bad-first-step column", "Must not say first" in text, "ok" if "Must not say first" in text else "missing")
+    full_text = read_text(FULL_SKILL / "references" / "eval-prompts.md")
+    compact_text = read_text(MCP_SKILL / "references" / "eval-prompts.md")
+    full_ids = sorted(set(re.findall(r"\bB\d{3}\b", full_text)))
+    compact_ids = sorted(set(re.findall(r"\bB\d{3}\b", compact_text)))
+    missing_full = [prompt_id for prompt_id in RECOMMENDED_EVAL_IDS if prompt_id not in full_ids]
+    missing_new_compact = [prompt_id for prompt_id in NEW_EVAL_IDS if prompt_id not in compact_ids]
+    add("full eval prompt count", len(full_ids) >= 50, f"{len(full_ids)} prompt ids")
+    add("compact eval prompt count", len(compact_ids) >= 50, f"{len(compact_ids)} prompt ids")
+    add("recommended full eval set", not missing_full, "missing: " + ", ".join(missing_full) if missing_full else "ok")
+    add("new compact eval set", not missing_new_compact, "missing: " + ", ".join(missing_new_compact) if missing_new_compact else "ok")
+    add("full eval bad-first-step column", "Must not say first" in full_text, "ok" if "Must not say first" in full_text else "missing")
+    add("compact eval bad-first-step column", "Must not start with" in compact_text, "ok" if "Must not start with" in compact_text else "missing")
 
 
 def validate_developer_card_coverage() -> None:

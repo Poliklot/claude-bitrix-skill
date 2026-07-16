@@ -12,7 +12,9 @@
 4. Симптом отладки → `core-grep-cookbook` + релевантный compact bundle.
 5. `sale`/`catalog`/`1C` → сначала module check, затем commerce bundle.
 6. “Как правильно/best practices/куда класть” → production sections в `php-architecture`/`core-routing`.
-7. Release/publish → `release-gate`.
+7. `header.php`/`footer.php`/`.section.php`/include → `project-layout-and-includes`.
+8. `.env`/`Option`/ID/dev-stage drift → `project-configuration`.
+9. Release/publish → `release-gate`.
 
 ## Режимы
 
@@ -22,6 +24,8 @@
 | Проектная правка | “найди где”, “почини”, “у нас” | project-intake, task-playbooks, core-grep, domain bundle | Конкретный file/layer, причина, patch или next action. |
 | Диагностическая цепочка | “не выводится”, “не обновляется”, “404 200”, “письмо не уходит” | core-grep + diagnostics/domain bundle | Source → params → template/result → cache/rights/index/logs. |
 | Component/template | IncludeComponent, template, `$arResult` | components-admin-ui | Params/template/result_modifier/component_epilog/local component. |
+| Структура/include | public root, `.section.php`, header/footer/index, `main.include`, “куда положить” | project-layout-and-includes + project-intake | Active layer, placement, convention, cache/edit/multisite checks. |
+| Конфигурация/ID | `.env`, `Option`, constants, `IBLOCK_ID`, dev/stage/prod | project-configuration + php/content bundles | Value class, source, validation, stable-key scope, error/cache contract. |
 | Production practice | “как правильно”, architecture, safe customization | php-architecture/core-routing | local module/service/migration/event, verification. |
 | Зависит от модуля | iblock/form/catalog/sale/currency/rest/bizproc/pull | module check + domain bundle | API route, если модуль есть; fallback/deferred, если отсутствует. |
 | Shop/1C | SKU, prices, stocks, basket, order, CommerceML | commerce-shop после module check | API-only route с recalculation/events/exchange side effects. |

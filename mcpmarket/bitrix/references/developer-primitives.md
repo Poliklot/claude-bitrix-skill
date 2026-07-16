@@ -1,6 +1,6 @@
 # Бытовые Bitrix-примитивы
 
-Загружай первым для коротких вопросов “как в PHP сделать X в Битриксе”. Сначала найди Bitrix-примитив, а не предлагай чистый PHP/HTML. Для готовых маршрутов ответа открывай [developer-cards.md](developer-cards.md); для отсечения плохого первого варианта — [first-answer-pitfalls.md](first-answer-pitfalls.md); для быстрых project grep-проверок — [core-grep-cookbook.md](core-grep-cookbook.md); для формата ответа — [answer-contracts.md](answer-contracts.md).
+Загружай первым для коротких вопросов “как в PHP сделать X в Битриксе”. Сначала найди Bitrix-примитив, а не предлагай чистый PHP/HTML. Для готовых маршрутов ответа открывай [developer-cards.md](developer-cards.md); для отсечения плохого первого варианта — [first-answer-pitfalls.md](first-answer-pitfalls.md); для быстрых project grep-проверок — [core-grep-cookbook.md](core-grep-cookbook.md); для page/include — [project-layout-and-includes.md](project-layout-and-includes.md); для config/ID — [project-configuration.md](project-configuration.md); для формата ответа — [answer-contracts.md](answer-contracts.md).
 
 ## Sources
 
@@ -28,6 +28,8 @@
 | подключить модуль | `Loader::includeModule('iblock')` с обработкой отсутствия модуля. |
 | редактируемый текст | `$APPLICATION->IncludeFile(...)`, включаемые области, свойства страницы или инфоблок. |
 | компонент | `$APPLICATION->IncludeComponent(...)`; сначала найти фактический вызов и шаблон в `local/templates/.../components/...`. |
+| куда положить блок | Найти active template/page convention; выбрать page/header-footer/include/component/service, не считать `/include` универсальным. |
+| куда вынести entity ID | Existing config convention; stable key + migration/registry, numeric env/option только с validation и entity check. |
 | 404/редирект | Проверить `404.php`, `CHTTP::SetStatus`, `ERROR_404`, `LocalRedirect`, routing/cache policy. |
 | картинка | `CFile::ResizeImageGet(...)` / project image service, а не только HTML width/height. |
 | перевод | `Bitrix\Main\Localization\Loc::getMessage(...)` и lang-файлы. |

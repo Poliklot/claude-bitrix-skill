@@ -15,8 +15,12 @@ find . -maxdepth 5 -type d -path '*/bitrix/modules/main' -print
 find . -maxdepth 4 -type d \( -name local -o -name bitrix \) -print
 find www/bitrix/modules -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sed 's#^www/bitrix/modules/##' | sort | head -n 80
 find local/templates bitrix/templates www/bitrix/templates -maxdepth 3 \( -name header.php -o -name footer.php -o -name '.section.php' \) -type f 2>/dev/null | sort
-rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(' local bitrix/templates www/bitrix/templates --glob '*.php' 2>/dev/null
+rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(|IncludeFile\(|main\.include|SetViewTarget|ShowViewContent' local bitrix/templates www/bitrix/templates --glob '*.php' 2>/dev/null
+find . -maxdepth 4 -type f \( -name '.env.example' -o -name composer.json -o -name constants.php -o -name init.php \) -print
+rg -l 'Dotenv|\$_ENV|\$_SERVER|getenv\(|Option::get|COption::GetOption|IBLOCK_ID|FORM_ID|HLBLOCK_ID' local . --glob '*.php' --glob '*.example' --glob '!bitrix/**' --glob '!www/bitrix/**' --glob '!vendor/**'
 ```
+
+Config-discovery выводит только filenames: строки могут содержать credentials. Выбранные файлы проверяй локально и точечно; secrets перед transcript/evidence заменяй на `<redacted>`.
 
 Если public root не `www/`, замени prefix на найденный root.
 
@@ -29,6 +33,8 @@ rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(' local bi
 | active template/header/footer | Meta/assets/layout/panel. |
 | `ShowHead`, `ShowTitle`, `ShowBodyScripts` | Бытовые ответы про head/assets. |
 | `IncludeComponent` calls and local component templates | Где живут вывод и параметры. |
+| `.section.php`, includes и delayed areas | Где живут page/section fragments. |
+| `.env`/`Option`/constants/entity IDs | Config convention, validation и drift стендов. |
 | module inventory | Нельзя обещать API отсутствующего модуля. |
 | `404.php`, `urlrewrite.php`, `SEF_*` | Диагностика routing/status. |
 | cache/composite markers | Диагностика “изменения не видны”. |
@@ -59,6 +65,8 @@ done
 ```
 
 Для простого вопроса показывай только релевантные факты.
+
+Для layout/include используй `project-layout-and-includes.md`; для `.env`/`Option`/ID — `project-configuration.md`. В context фиксируй источник/schema/status, но не secret values.
 
 ## Файл контекста проекта
 

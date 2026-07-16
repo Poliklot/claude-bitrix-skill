@@ -31,9 +31,17 @@ find local/templates bitrix/templates www/bitrix/templates -maxdepth 3 \
 ```
 
 ```bash
-rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(' \
+rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(|IncludeFile\(|main\.include|SetViewTarget|ShowViewContent' \
   local bitrix/templates www/bitrix/templates --glob '*.php' 2>/dev/null
 ```
+
+```bash
+find . -maxdepth 4 -type f \( -name '.env.example' -o -name composer.json -o -name constants.php -o -name init.php \) -print
+rg -l 'Dotenv|\$_ENV|\$_SERVER|getenv\(|Option::get|COption::GetOption|IBLOCK_ID|FORM_ID|HLBLOCK_ID' \
+  local . --glob '*.php' --glob '*.example' --glob '!bitrix/**' --glob '!www/bitrix/**' --glob '!vendor/**'
+```
+
+Config-discovery намеренно выводит только filenames: совпавшие строки могут содержать credentials. Выбранные файлы проверяй локально и точечно; secrets перед transcript/evidence редактируй как `<redacted>`.
 
 ## Что зафиксировать
 
@@ -44,6 +52,8 @@ rg -n 'ShowHead|ShowTitle|ShowBodyScripts|ShowPanel|IncludeComponent\(' \
 | Активный шаблон | `header.php`, `footer.php`, `SITE_TEMPLATE_PATH`, calls on pages | Для meta/assets/panel/layout. |
 | Контракт head | `ShowHead`, `ShowTitle`, `ShowBodyScripts` | Решает бытовые meta/CSS/JS вопросы. |
 | Компоненты | `IncludeComponent(` and `local/templates/*/components` | Где править вывод и параметры. |
+| Layout/includes | `.section.php`, `IncludeFile`, `main.include`, `SetViewTarget`, `ShowViewContent` | Где живут page/section fragments и delayed areas. |
+| Config/ID | `.env.example`, `Option`, constants, `IBLOCK_ID`/`FORM_ID`/`HLBLOCK_ID`, registry/migrations | Не навязать новый stack и не переносить numeric IDs между стендами вслепую. |
 | Состав модулей | `www/bitrix/modules/*/install/version.php` | Нельзя обещать API отсутствующего модуля. |
 | 404/routing | `404.php`, `urlrewrite.php`, `SEF_MODE`, `SET_STATUS_404` | Для status/SEO/SEF diagnostics. |
 | Cache/composite | `CACHE_TYPE`, `CACHE_GROUPS`, `StartResultCache`, `setFrameMode`, `createFrame`, `StaticHtmlCache`, `/bitrix/html_pages/`, `X-Bitrix-Composite` | Для “изменения не видны”, second request/cache pass и персонализации. |
@@ -120,6 +130,12 @@ find local/templates bitrix/templates -path '*components/bitrix*' -type f 2>/dev
 ```
 
 Сначала project template, затем stock component contract.
+
+### Структура/include и конфигурация
+
+- Для public root, `.section.php`, header/footer/page и include/delayed areas открыть [project-layout-and-includes.md](project-layout-and-includes.md).
+- Для `.env`, `Option`, constants, numeric IDs и stable-key registry открыть [project-configuration.md](project-configuration.md).
+- Не записывать значения secrets в отчёт/`BITRIX_PROJECT_CONTEXT.md`; фиксировать только источник, schema/validation и статус.
 
 ### “В админке есть, на сайте нет”
 
